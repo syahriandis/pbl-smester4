@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 import '../color.dart';
 
-class SnackPage extends StatelessWidget {
-  final List<String> snacks = [
-    "Almond",
-    "Yogurt",
-    "Apel",
-  ];
+class SnackDrinkPage extends StatefulWidget {
+  const SnackDrinkPage({Key? key}) : super(key: key);
 
+  @override
+  State<SnackDrinkPage> createState() => _SnackDrinkPageState();
+}
+
+class _SnackDrinkPageState extends State<SnackDrinkPage>
+    with SingleTickerProviderStateMixin {
+
+  late TabController _tabController;
+
+  final List<String> snacks = ["Almond", "Yogurt", "Apel"];
+  final List<String> drinks = ["Air putih", "Teh tanpa gula", "Jus alpukat"];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  // 🔢 HITUNG GULA
   double hitungGula(double jumlah, double takaran, double gulaPerSaji) {
     return (jumlah / takaran) * gulaPerSaji;
   }
@@ -18,7 +33,8 @@ class SnackPage extends StatelessWidget {
     return "Terlalu Tinggi ❌";
   }
 
-  void showInputDialog(BuildContext context) {
+  // 🔥 DIALOG INPUT (DIPAKAI UNTUK KEDUA TAB)
+  void showInputDialog(BuildContext context, String title) {
     final namaCtrl = TextEditingController();
     final gulaCtrl = TextEditingController();
     final takaranCtrl = TextEditingController();
@@ -27,13 +43,13 @@ class SnackPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text("Tambah Snack dari Luar"),
+        title: Text("Tambah $title dari Luar"),
         content: SingleChildScrollView(
           child: Column(
             children: [
               TextField(
                 controller: namaCtrl,
-                decoration: InputDecoration(labelText: "Nama Snack"),
+                decoration: InputDecoration(labelText: "Nama $title"),
               ),
               TextField(
                 controller: gulaCtrl,
@@ -69,61 +85,103 @@ class SnackPage extends StatelessWidget {
               showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: Text("Hasil"),
+                  title: const Text("Hasil"),
                   content: Text(
                     "Total Gula: ${gula.toStringAsFixed(1)} g\nStatus: $status",
                   ),
                 ),
               );
             },
-            child: Text("Hitung"),
+            child: const Text("Hitung"),
           )
         ],
       ),
     );
   }
 
+  // 🧃 WIDGET LIST
+  Widget buildList(List<String> items, IconData icon, String subtitle, String type) {
+    return ListView(
+      padding: const EdgeInsets.all(10),
+      children: [
+        ...items.map((e) {
+          return Card(
+            color: AppColor.primaryLight,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            child: ListTile(
+              title: Text(e),
+              leading: Icon(icon, color: AppColor.primary),
+              subtitle: Text(subtitle),
+            ),
+          );
+        }).toList(),
+
+        const SizedBox(height: 20),
+
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColor.primary,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          onPressed: () => showInputDialog(context, type),
+          icon: const Icon(Icons.add),
+          label: Text("Tambah $type dari Luar"),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Rekomendasi Snack"),
-        backgroundColor: AppColor.primary,
-      ),
-
-      body: ListView(
-        padding: EdgeInsets.all(10),
-        children: [
-          // 🔹 LIST REKOMENDASI
-          ...snacks.map((e) {
-            return Card(
-              color: AppColor.primaryLight,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: EdgeInsets.symmetric(vertical: 6),
-              child: ListTile(
-                title: Text(e),
-                leading: Icon(Icons.fastfood, color: AppColor.primary),
-                subtitle: Text("Rekomendasi untuk gula darah stabil"),
-              ),
-            );
-          }).toList(),
-
-          SizedBox(height: 20),
-
-          // 🔥 BUTTON TAMBAH DARI LUAR
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.primary,
-              padding: EdgeInsets.symmetric(vertical: 12),
+    return Column(
+      children: [
+        // HEADER
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            "Cemilan",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColor.primary,
             ),
-            onPressed: () => showInputDialog(context),
-            icon: Icon(Icons.add),
-            label: Text("Tambah Snack dari Luar"),
           ),
-        ],
-      ),
+        ),
+
+        // TAB
+        TabBar(
+          controller: _tabController,
+          labelColor: AppColor.primary,
+          tabs: const [
+            Tab(text: "Snack"),
+            Tab(text: "Minuman"),
+          ],
+        ),
+
+        // ISI + SWIPE
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              buildList(
+                snacks,
+                Icons.fastfood,
+                "Rekomendasi untuk gula stabil",
+                "Snack",
+              ),
+              buildList(
+                drinks,
+                Icons.local_drink,
+                "Aman untuk penderita diabetes",
+                "Minuman",
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

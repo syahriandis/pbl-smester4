@@ -1,7 +1,8 @@
+<uses-permission android:name="android.permission.INTERNET"/>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
+        android:usesCleartextTraffic="true"
         android:label="aplikasi_diabetes"
-        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

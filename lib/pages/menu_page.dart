@@ -1,37 +1,64 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../color.dart';
 
-class MenuPage extends StatelessWidget {
-  MenuPage({super.key});
+class MenuPage extends StatefulWidget {
+  const MenuPage({super.key});
 
-  final List<Map<String, String>> menu = [
-    {
-      "nama": "Nasi Merah",
-      "gambar": "assets/nasi_merah.jpg",
-      "komposisi": "Beras merah",
-      "cara": "Masak seperti nasi biasa"
-    },
-    {
-      "nama": "Ayam Rebus",
-      "gambar": "assets/ayam.jpg",
-      "komposisi": "Ayam",
-      "cara": "Rebus hingga matang"
-    },
-    {
-      "nama": "Sayur Bayam",
-      "gambar": "assets/bayam.jpg",
-      "komposisi": "Bayam",
-      "cara": "Rebus sebentar"
-    },
-    {
-      "nama": "Ikan Bakar",
-      "gambar": "assets/ikan.jpg",
-      "komposisi": "Ikan",
-      "cara": "Bakar hingga matang"
-    },
-  ];
+  @override
+  State<MenuPage> createState() => _MenuPageState();
+}
 
-  void showDetail(BuildContext context, Map<String, String> item) {
+class _MenuPageState extends State<MenuPage> {
+  List<dynamic> menu = [];
+  bool isLoading = true;
+
+  final String apiKey = "4b42705d9667427893b40d1fbcfb7fed"; // 🔴 GANTI API KEY
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMenu();
+  }
+
+  Future<void> fetchMenu() async {
+    try {
+      final response = await http.get(Uri.parse(
+        'https://api.spoonacular.com/recipes/complexSearch?apiKey=$apiKey&number=6&diet=low-carb'
+      ));
+
+      final data = jsonDecode(response.body);
+      List temp = data['results'];
+
+      // ambil nutrisi tiap menu
+      for (var item in temp) {
+        final res = await http.get(Uri.parse(
+          'https://api.spoonacular.com/recipes/${item['id']}/nutritionWidget.json?apiKey=$apiKey'
+        ));
+
+        if (res.statusCode == 200) {
+          final nutri = jsonDecode(res.body);
+          item['calories'] = nutri['calories'];
+          item['carbs'] = nutri['carbs'];
+          item['protein'] = nutri['protein'];
+        }
+      }
+
+      setState(() {
+        menu = temp;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("ERROR API: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void showDetail(BuildContext context, dynamic item) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -42,34 +69,47 @@ class MenuPage extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item["nama"]!,
+                  item["title"],
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(item["gambar"]!),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text("Komposisi", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(item["komposisi"]!),
-
-                const SizedBox(height: 8),
-
-                const Text("Cara Membuat", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(item["cara"]!),
 
                 const SizedBox(height: 10),
+
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: CachedNetworkImage(
+                    imageUrl: (item["image"] ?? "")
+                        .replaceAll("http://", "https://"),
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) {
+                      print("ERROR DETAIL: $url");
+                      return const Icon(Icons.broken_image, size: 50);
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                const Text(
+                  "Nutrisi",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text("🔥 Kalori: ${item["calories"] ?? '-'}"),
+                Text("🍞 Karbohidrat: ${item["carbs"] ?? '-'}"),
+                Text("💪 Protein: ${item["protein"] ?? '-'}"),
+
+                const SizedBox(height: 12),
 
                 Align(
                   alignment: Alignment.centerRight,
@@ -88,69 +128,71 @@ class MenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       itemCount: menu.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4, // 🔥 SUPER KECIL (4 kolom)
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-        childAspectRatio: 0.7,
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.75,
       ),
       itemBuilder: (_, i) {
         final item = menu[i];
 
         return GestureDetector(
           onTap: () => showDetail(context, item),
-
           child: Container(
             decoration: BoxDecoration(
               color: AppColor.primaryLight,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               children: [
-                // GAMBAR
                 Expanded(
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(10),
+                      top: Radius.circular(12),
                     ),
-                    child: Image.asset(
-                      item["gambar"]!,
+                    child: CachedNetworkImage(
+                      imageUrl: (item["image"] ?? "")
+                          .replaceAll("http://", "https://"),
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) {
+                        print("ERROR GRID: $url");
+                        return const Icon(Icons.broken_image, size: 50);
+                      },
                     ),
                   ),
                 ),
 
-                // NAMA (KECIL)
                 Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(6),
                   child: Text(
-                    item["nama"]!,
+                    item["title"],
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
                 ),
 
-                // KOMPOSISI MINI
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    item["komposisi"]!,
-                    style: const TextStyle(fontSize: 8),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  "🔥 ${item["calories"] ?? '-'}",
+                  style: const TextStyle(fontSize: 11),
                 ),
 
-                const SizedBox(height: 3),
+                const SizedBox(height: 6),
               ],
             ),
           ),

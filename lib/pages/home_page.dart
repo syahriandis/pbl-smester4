@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../color.dart';
 import 'menu_page.dart';
 import 'snack_page.dart';
-import 'drink_page.dart';
 import 'recipe_page.dart';
 import 'chart_page.dart';
 import 'login_page.dart';
+import 'account_page.dart';
 
 class HomePage extends StatefulWidget {
   final String nama;
@@ -24,12 +24,12 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int index = 0;
 
-  final pages = [
+  late final pages = [
     MenuPage(),
-    SnackPage(),
-    DrinkPage(),
+    SnackDrinkPage(),
     RecipePage(),
     ChartPage(),
+    AccountPage(),
   ];
 
   void logout() {
@@ -45,7 +45,9 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppColor.background,
 
-      appBar: AppBar(
+      appBar: index == 3
+      ? null
+      : AppBar(
         title: const Text("Diabetes App"),
         backgroundColor: AppColor.primary,
         actions: [
@@ -56,36 +58,7 @@ class HomePageState extends State<HomePage> {
         ],
       ),
 
-      body: Column(
-        children: [
-          // INFO USER
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Halo, ${widget.nama}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text("Kategori Gula: ${widget.kategori}"),
-              ],
-            ),
-          ),
-
-          Expanded(child: pages[index]),
-        ],
-      ),
+      body: pages[index], // <-- langsung tampilkan page
 
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: AppColor.primary,
@@ -94,10 +67,10 @@ class HomePageState extends State<HomePage> {
         onTap: (i) => setState(() => index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: "Menu"),
-          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: "Snack"),
-          BottomNavigationBarItem(icon: Icon(Icons.local_drink), label: "Minum"),
+          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: "Cemilan"),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: "Resep"),
           BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Chart"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Akun"),
         ],
       ),
     );
