@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../color.dart';
+
 import 'menu_page.dart';
-import 'food_page.dart'; 
+import 'food_page.dart';
 import 'recipe_page.dart';
 import 'chart_page.dart';
 import 'profile_page.dart';
 import 'login_page.dart';
+import 'account_page.dart';
 
 class HomePage extends StatefulWidget {
   final String nama;
@@ -30,11 +32,12 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int index = 0;
 
-  final pages = [
+  late final List<Widget> pages = [
     MenuPage(),
-    FoodPage(), // 🔥 gabungan snack + drink
+    FoodPage(), // gabungan snack + drink
     RecipePage(),
     ChartPage(),
+    AccountPage(),
   ];
 
   void logout() {
@@ -50,35 +53,38 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppColor.background,
 
-      appBar: AppBar(
-        title: const Text("Diabetes App"),
-        backgroundColor: AppColor.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfilePage(
-                    nama: widget.nama,
-                    email: widget.email,
-                    umur: widget.umur,
-                    gender: widget.gender,
-                  ),
+      appBar: index == 3
+          ? null
+          : AppBar(
+              title: const Text("Diabetes App"),
+              backgroundColor: AppColor.primary,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfilePage(
+                          nama: widget.nama,
+                          email: widget.email,
+                          umur: widget.umur,
+                          gender: widget.gender,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-          IconButton(
-            onPressed: logout,
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
+                IconButton(
+                  onPressed: logout,
+                  icon: const Icon(Icons.logout),
+                ),
+              ],
+            ),
 
       body: Column(
         children: [
+
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -103,11 +109,27 @@ class HomePageState extends State<HomePage> {
         currentIndex: index,
         onTap: (i) => setState(() => index = i),
         type: BottomNavigationBarType.fixed,
-        items:  [
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: "Menu"),
-          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: "Food"),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: "Resep"),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Chart"),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant),
+            label: "Menu",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fastfood),
+            label: "Food",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book),
+            label: "Resep",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart),
+            label: "Chart",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: "Akun",
+          ),
         ],
       ),
     );

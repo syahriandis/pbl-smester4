@@ -1,9 +1,21 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import '../color.dart';
 
-class MenuPage extends StatelessWidget {
-  MenuPage({super.key});
+class MenuPage extends StatefulWidget {
+  const MenuPage({super.key});
 
+  @override
+  State<MenuPage> createState() => _MenuPageState();
+}
+
+class _MenuPageState extends State<MenuPage> {
+
+  // =========================
+  // 🔥 DATA DUMMY (OFFLINE)
+  // =========================
   final Map<String, dynamic> menuData = {
     "Menu": {
       "icon": Icons.restaurant,
@@ -13,7 +25,7 @@ class MenuPage extends StatelessWidget {
           "nama": "Nasi Merah",
           "gambar": "assets/nasi_merah.jpg",
           "komposisi": "Beras merah",
-          "resep": "Masak beras merah ±30 menit",
+          "resep": "Masak 30 menit",
           "takaran": "100 gram"
         },
         {
@@ -46,53 +58,103 @@ class MenuPage extends StatelessWidget {
           "nama": "Teh Hijau",
           "gambar": "assets/teh.jpg",
           "komposisi": "Teh",
-          "resep": "Seduh tanpa gula",
+          "resep": "Tanpa gula",
           "takaran": "1 gelas"
         },
       ]
     }
   };
 
-  void showDetail(BuildContext context, Map item) {
+  // =========================
+  // 🔥 DATA API (ONLINE)
+  // =========================
+  List<dynamic> menu = [];
+  bool isLoading = true;
+
+  final String apiKey = "YOUR_API_KEY"; // ganti sendiri
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMenu();
+  }
+
+  Future<void> fetchMenu() async {
+    try {
+      final response = await http.get(Uri.parse(
+        'https://api.spoonacular.com/recipes/complexSearch?apiKey=$apiKey&number=6&diet=low-carb'
+      ));
+
+      final data = jsonDecode(response.body);
+      List temp = data['results'];
+
+      for (var item in temp) {
+        final res = await http.get(Uri.parse(
+          'https://api.spoonacular.com/recipes/${item['id']}/nutritionWidget.json?apiKey=$apiKey'
+        ));
+
+        if (res.statusCode == 200) {
+          final nutri = jsonDecode(res.body);
+          item['calories'] = nutri['calories'];
+          item['carbs'] = nutri['carbs'];
+          item['protein'] = nutri['protein'];
+        }
+      }
+
+      setState(() {
+        menu = temp;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  // =========================
+  // 🔥 DETAIL DIALOG
+  // =========================
+  void showDetail(BuildContext context, dynamic item) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: Text(item["nama"] ?? ""),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
 
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.asset(
-                  item["gambar"] ?? "",
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return Container(
-                      height: 150,
-                      color: Colors.grey.shade300,
-                      child: const Icon(Icons.image),
-                    );
-                  },
+              Text(
+                item["nama"] ?? item["title"] ?? "",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
 
-              const SizedBox(height: 15),
+              const SizedBox(height: 10),
 
-              Text("Komposisi: ${item["komposisi"] ?? "-"}"),
-              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: item["image"] != null
+                    ? CachedNetworkImage(
+                        imageUrl: item["image"].toString().replaceAll("http://", "https://"),
+                      )
+                    : Image.asset(item["gambar"] ?? ""),
+              ),
 
-              Text("Takaran: ${item["takaran"] ?? "-"}"),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
 
-              Text("Resep: ${item["resep"] ?? "-"}"),
+              if (item["calories"] != null) ...[
+                Text("🔥 Kalori: ${item["calories"]}"),
+                Text("🍞 Karbo: ${item["carbs"]}"),
+                Text("💪 Protein: ${item["protein"]}"),
+              ] else ...[
+                Text("Komposisi: ${item["komposisi"] ?? "-"}"),
+                Text("Takaran: ${item["takaran"] ?? "-"}"),
+                Text("Resep: ${item["resep"] ?? "-"}"),
+              ],
             ],
           ),
         ),
@@ -106,11 +168,10 @@ class MenuPage extends StatelessWidget {
     );
   }
 
-  Widget buildCard(
-    BuildContext context,
-    Map item,
-    Color warna,
-  ) {
+  // =========================
+  // 🔥 CARD DUMMY
+  // =========================
+  Widget buildCard(BuildContext context, Map item, Color warna) {
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),
@@ -126,69 +187,25 @@ class MenuPage extends StatelessWidget {
               top: Radius.circular(16),
             ),
             child: Image.asset(
-              item["gambar"] ?? "",
+              item["gambar"],
               height: 100,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return Container(
-                  height: 100,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.image),
-                );
-              },
             ),
           ),
 
           const SizedBox(height: 10),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              item["nama"] ?? "",
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 5),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              item["komposisi"] ?? "",
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-
-          const Spacer(),
-
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColor.primary),
-              ),
-              onPressed: () => showDetail(context, item),
-              child: const Text("Lihat Detail"),
-            ),
-          ),
+          Text(item["nama"]),
         ],
       ),
     );
   }
 
-  Widget buildSection(
-    BuildContext context,
-    String title,
-    Map section,
-  ) {
+  // =========================
+  // 🔥 SECTION DUMMY
+  // =========================
+  Widget buildSection(String title, Map section) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -200,21 +217,11 @@ class MenuPage extends StatelessWidget {
               child: Icon(section["icon"]),
             ),
             const SizedBox(width: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
           ],
-        ),
-
-        const SizedBox(height: 5),
-
-        const Text(
-          "Menu sehat untuk kebutuhan harianmu",
-          style: TextStyle(color: Colors.grey),
         ),
 
         const SizedBox(height: 10),
@@ -224,33 +231,67 @@ class MenuPage extends StatelessWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: (section["data"] as List)
-                .map(
-                  (item) => buildCard(
-                    context,
-                    item,
-                    section["warna"],
-                  ),
-                )
+                .map((item) => buildCard(context, item, section["warna"]))
                 .toList(),
           ),
         ),
-
-        const SizedBox(height: 20),
       ],
     );
   }
 
+  // =========================
+  // 🔥 BUILD UI
+  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.background,
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
-          children: menuData.entries
-              .map((e) => buildSection(context, e.key, e.value))
-              .toList(),
+          children: [
+
+            // 🔥 OFFLINE SECTION
+            ...menuData.entries.map(
+              (e) => buildSection(e.key, e.value),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🔥 ONLINE SECTION
+            if (isLoading)
+              const CircularProgressIndicator()
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: menu.length,
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                ),
+                itemBuilder: (_, i) {
+                  final item = menu[i];
+
+                  return GestureDetector(
+                    onTap: () => showDetail(context, item),
+                    child: Card(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: CachedNetworkImage(
+                              imageUrl: item["image"]
+                                  .toString()
+                                  .replaceAll("http://", "https://"),
+                            ),
+                          ),
+                          Text(item["title"]),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
       ),
     );
