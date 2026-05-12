@@ -1,100 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../color.dart';
 import 'register_page.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatelessWidget {
-  LoginPage({Key? key}) : super(key: key);
+  LoginPage({super.key});
 
-  final email = TextEditingController();
-  final password = TextEditingController();
+  final TextEditingController email = TextEditingController();
+  final TextEditingController password = TextEditingController();
+
+  Future<void> login(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    String? savedEmail = prefs.getString('email');
+    String? savedPassword = prefs.getString('password');
+
+    if (email.text == savedEmail && password.text == savedPassword) {
+      if (!context.mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            nama: prefs.getString('nama') ?? "-",
+            kategori: "-",
+            email: savedEmail ?? "-",
+            umur: prefs.getString('umur') ?? "-",
+            gender: prefs.getString('gender') ?? "-",
+          ),
+        ),
+      );
+    } else {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Email atau password salah"),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.background,
+      body: Container(
+        width: double.infinity,
 
-      appBar: AppBar(
-        title: const Text("Login"),
-        backgroundColor: AppColor.primary,
-      ),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColor.primary,
+              AppColor.primaryLight,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
 
-            Text(
-              "Selamat Datang",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColor.primary,
+            child: Container(
+              padding: const EdgeInsets.all(25),
+
+              decoration: BoxDecoration(
+                color: AppColor.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 15,
+                    offset: Offset(0, 8),
+                  ),
+                ],
               ),
-            ),
 
-            const SizedBox(height: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
 
-            TextField(
-              controller: email,
-              decoration: const InputDecoration(
-                labelText: "Email",
-                border: OutlineInputBorder(),
-              ),
-            ),
+                  const Icon(
+                    Icons.health_and_safety,
+                    size: 80,
+                    color: AppColor.primary,
+                  ),
 
-            const SizedBox(height: 15),
+                  const SizedBox(height: 15),
 
-            TextField(
-              controller: password,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: "Password",
-                border: OutlineInputBorder(),
-              ),
-            ),
+                  const Text(
+                    "Selamat Datang",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
 
-            const SizedBox(height: 20),
+                  const SizedBox(height: 5),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const HomePage(
-                        nama: "User",
-                        kategori: "Normal",
+                  const Text(
+                    "Silakan login ke akun Anda",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  TextField(
+                    controller: email,
+                    decoration: InputDecoration(
+                      hintText: "Email",
+                      prefixIcon: const Icon(Icons.email),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
                       ),
                     ),
-                  );
-                },
-                child: const Text("Login"),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextField(
+                    controller: password,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: "Password",
+                      prefixIcon: const Icon(Icons.lock),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+
+                    child: ElevatedButton(
+                      onPressed: () => login(context),
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColor.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 5,
+                      ),
+
+                      child: const Text(
+                        "Login",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 15),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Belum punya akun?"),
+
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Register",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 10),
-
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const RegisterPage()),
-                );
-              },
-              child: Text(
-                "Belum punya akun? Register",
-                style: TextStyle(color: AppColor.primary),
-              ),
-            )
-          ],
+          ),
         ),
       ),
     );

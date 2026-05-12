@@ -4,158 +4,255 @@ import '../color.dart';
 class MenuPage extends StatelessWidget {
   MenuPage({super.key});
 
-  final List<Map<String, String>> menu = [
-    {
-      "nama": "Nasi Merah",
-      "gambar": "assets/nasi_merah.jpg",
-      "komposisi": "Beras merah",
-      "cara": "Masak seperti nasi biasa"
+  final Map<String, dynamic> menuData = {
+    "Menu": {
+      "icon": Icons.restaurant,
+      "warna": AppColor.primaryLight,
+      "data": [
+        {
+          "nama": "Nasi Merah",
+          "gambar": "assets/nasi_merah.jpg",
+          "komposisi": "Beras merah",
+          "resep": "Masak beras merah ±30 menit",
+          "takaran": "100 gram"
+        },
+        {
+          "nama": "Ayam Rebus",
+          "gambar": "assets/ayam.jpg",
+          "komposisi": "Ayam",
+          "resep": "Rebus tanpa minyak",
+          "takaran": "1 potong"
+        },
+      ]
     },
-    {
-      "nama": "Ayam Rebus",
-      "gambar": "assets/ayam.jpg",
-      "komposisi": "Ayam",
-      "cara": "Rebus hingga matang"
+    "Cemilan": {
+      "icon": Icons.cake,
+      "warna": Colors.purple.shade100,
+      "data": [
+        {
+          "nama": "Pisang Rebus",
+          "gambar": "assets/pisang.jpg",
+          "komposisi": "Pisang",
+          "resep": "Rebus hingga matang",
+          "takaran": "1 buah"
+        },
+      ]
     },
-    {
-      "nama": "Sayur Bayam",
-      "gambar": "assets/bayam.jpg",
-      "komposisi": "Bayam",
-      "cara": "Rebus sebentar"
-    },
-    {
-      "nama": "Ikan Bakar",
-      "gambar": "assets/ikan.jpg",
-      "komposisi": "Ikan",
-      "cara": "Bakar hingga matang"
-    },
-  ];
+    "Minuman": {
+      "icon": Icons.local_drink,
+      "warna": Colors.blue.shade100,
+      "data": [
+        {
+          "nama": "Teh Hijau",
+          "gambar": "assets/teh.jpg",
+          "komposisi": "Teh",
+          "resep": "Seduh tanpa gula",
+          "takaran": "1 gelas"
+        },
+      ]
+    }
+  };
 
-  void showDetail(BuildContext context, Map<String, String> item) {
+  void showDetail(BuildContext context, Map item) {
     showDialog(
       context: context,
-      builder: (_) => Dialog(
+      builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(20),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item["nama"]!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+        title: Text(item["nama"] ?? ""),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.asset(
+                  item["gambar"] ?? "",
+                  height: 150,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) {
+                    return Container(
+                      height: 150,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.image),
+                    );
+                  },
                 ),
-                const SizedBox(height: 8),
+              ),
 
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(item["gambar"]!),
-                ),
+              const SizedBox(height: 15),
 
-                const SizedBox(height: 8),
+              Text("Komposisi: ${item["komposisi"] ?? "-"}"),
+              const SizedBox(height: 8),
 
-                const Text("Komposisi", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(item["komposisi"]!),
+              Text("Takaran: ${item["takaran"] ?? "-"}"),
+              const SizedBox(height: 8),
 
-                const SizedBox(height: 8),
-
-                const Text("Cara Membuat", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text(item["cara"]!),
-
-                const SizedBox(height: 10),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Tutup"),
-                  ),
-                )
-              ],
-            ),
+              Text("Resep: ${item["resep"] ?? "-"}"),
+            ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Tutup"),
+          )
+        ],
       ),
+    );
+  }
+
+  Widget buildCard(
+    BuildContext context,
+    Map item,
+    Color warna,
+  ) {
+    return Container(
+      width: 160,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: warna,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(16),
+            ),
+            child: Image.asset(
+              item["gambar"] ?? "",
+              height: 100,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return Container(
+                  height: 100,
+                  color: Colors.grey.shade300,
+                  child: const Icon(Icons.image),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              item["nama"] ?? "",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              item["komposisi"] ?? "",
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+
+          const Spacer(),
+
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColor.primary),
+              ),
+              onPressed: () => showDetail(context, item),
+              child: const Text("Lihat Detail"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSection(
+    BuildContext context,
+    String title,
+    Map section,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColor.primaryLight,
+              child: Icon(section["icon"]),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 5),
+
+        const Text(
+          "Menu sehat untuk kebutuhan harianmu",
+          style: TextStyle(color: Colors.grey),
+        ),
+
+        const SizedBox(height: 10),
+
+        SizedBox(
+          height: 250,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: (section["data"] as List)
+                .map(
+                  (item) => buildCard(
+                    context,
+                    item,
+                    section["warna"],
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: menu.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4, // 🔥 SUPER KECIL (4 kolom)
-        crossAxisSpacing: 6,
-        mainAxisSpacing: 6,
-        childAspectRatio: 0.7,
+    return Scaffold(
+      backgroundColor: AppColor.background,
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: menuData.entries
+              .map((e) => buildSection(context, e.key, e.value))
+              .toList(),
+        ),
       ),
-      itemBuilder: (_, i) {
-        final item = menu[i];
-
-        return GestureDetector(
-          onTap: () => showDetail(context, item),
-
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColor.primaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              children: [
-                // GAMBAR
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(10),
-                    ),
-                    child: Image.asset(
-                      item["gambar"]!,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-                // NAMA (KECIL)
-                Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Text(
-                    item["nama"]!,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                // KOMPOSISI MINI
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(
-                    item["komposisi"]!,
-                    style: const TextStyle(fontSize: 8),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-
-                const SizedBox(height: 3),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

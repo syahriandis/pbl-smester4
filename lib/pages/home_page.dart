@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import '../color.dart';
 import 'menu_page.dart';
-import 'snack_page.dart';
-import 'drink_page.dart';
+import 'food_page.dart'; 
 import 'recipe_page.dart';
 import 'chart_page.dart';
+import 'profile_page.dart';
 import 'login_page.dart';
 
 class HomePage extends StatefulWidget {
   final String nama;
   final String kategori;
+  final String email;
+  final String umur;
+  final String gender;
 
   const HomePage({
-    Key? key,
+    super.key,
     required this.nama,
     required this.kategori,
-  }) : super(key: key);
+    required this.email,
+    required this.umur,
+    required this.gender,
+  });
 
   @override
-  HomePageState createState() => HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
 class HomePageState extends State<HomePage> {
@@ -26,8 +32,7 @@ class HomePageState extends State<HomePage> {
 
   final pages = [
     MenuPage(),
-    SnackPage(),
-    DrinkPage(),
+    FoodPage(), // 🔥 gabungan snack + drink
     RecipePage(),
     ChartPage(),
   ];
@@ -50,52 +55,57 @@ class HomePageState extends State<HomePage> {
         backgroundColor: AppColor.primary,
         actions: [
           IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfilePage(
+                    nama: widget.nama,
+                    email: widget.email,
+                    umur: widget.umur,
+                    gender: widget.gender,
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
             onPressed: logout,
             icon: const Icon(Icons.logout),
-          )
+          ),
         ],
       ),
 
       body: Column(
         children: [
-          // INFO USER
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColor.primary.withOpacity(0.1),
+              color: AppColor.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Halo, ${widget.nama}",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text("Kategori Gula: ${widget.kategori}"),
-              ],
-            ),
+            child: Text("Halo, ${widget.nama}"),
           ),
 
-          Expanded(child: pages[index]),
+          Expanded(
+            child: IndexedStack(
+              index: index,
+              children: pages,
+            ),
+          ),
         ],
       ),
 
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: AppColor.primary,
-        unselectedItemColor: Colors.grey,
         currentIndex: index,
         onTap: (i) => setState(() => index = i),
-        items: const [
+        type: BottomNavigationBarType.fixed,
+        items:  [
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: "Menu"),
-          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: "Snack"),
-          BottomNavigationBarItem(icon: Icon(Icons.local_drink), label: "Minum"),
+          BottomNavigationBarItem(icon: Icon(Icons.fastfood), label: "Food"),
           BottomNavigationBarItem(icon: Icon(Icons.book), label: "Resep"),
           BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Chart"),
         ],

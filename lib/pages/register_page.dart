@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../color.dart';
-import 'home_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -19,197 +20,278 @@ class RegisterPageState extends State<RegisterPage> {
   final confirmPassword = TextEditingController();
 
   String? gender;
-  String? kategoriGula;
-  bool isHidden = true;
+
+  Future<void> register() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString('nama', name.text);
+    await prefs.setString('email', email.text);
+    await prefs.setString('password', password.text);
+    await prefs.setString('umur', umur.text);
+    await prefs.setString('gender', gender ?? "-");
+  }
+
+  InputDecoration inputStyle({
+    required String hint,
+    required IconData icon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon),
+
+      filled: true,
+      fillColor: Colors.grey.shade100,
+
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColor.background,
-      appBar: AppBar(
-        title: const Text("Register"),
-        backgroundColor: AppColor.primary,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
+      body: Container(
+        width: double.infinity,
 
-              Text(
-                "Buat Akun",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColor.primary,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF4CAF50),
+              Color(0xFF81C784),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+
+              child: Container(
+                padding: const EdgeInsets.all(25),
+
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                child: Form(
+                  key: _formKey,
 
-              // Nama
-              TextFormField(
-                controller: name,
-                validator: (value) =>
-                    value!.isEmpty ? "Nama wajib diisi" : null,
-                decoration: const InputDecoration(
-                  labelText: "Nama",
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                  child: Column(
+                    children: [
 
-              const SizedBox(height: 15),
+                      const Icon(
+                        Icons.person_add_alt_1,
+                        size: 80,
+                        color: Colors.green,
+                      ),
 
-              // Email
-              TextFormField(
-                controller: email,
-                validator: (value) {
-                  if (value!.isEmpty) return "Email wajib diisi";
-                  if (!value.contains("@")) return "Email tidak valid";
-                  return null;
-                },
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                      const SizedBox(height: 15),
 
-              const SizedBox(height: 15),
+                      const Text(
+                        "Buat Akun",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-              // Password
-              TextFormField(
-                controller: password,
-                obscureText: isHidden,
-                validator: (value) {
-                  if (value!.isEmpty) return "Password wajib diisi";
-                  if (value.length < 6) return "Minimal 6 karakter";
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        isHidden ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () {
-                      setState(() {
-                        isHidden = !isHidden;
-                      });
-                    },
-                  ),
-                ),
-              ),
+                      const SizedBox(height: 5),
 
-              const SizedBox(height: 15),
+                      const Text(
+                        "Silakan isi data diri Anda",
+                        style: TextStyle(
+                          color: Colors.grey,
+                        ),
+                      ),
 
-              // Konfirmasi Password
-              TextFormField(
-                controller: confirmPassword,
-                obscureText: isHidden,
-                validator: (value) {
-                  if (value != password.text) {
-                    return "Password tidak sama";
-                  }
-                  return null;
-                },
-                decoration: const InputDecoration(
-                  labelText: "Konfirmasi Password",
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                      const SizedBox(height: 30),
 
-              const SizedBox(height: 15),
+                      TextFormField(
+                        controller: name,
+                        validator: (v) =>
+                            v!.isEmpty ? "Nama wajib diisi" : null,
+                        decoration: inputStyle(
+                          hint: "Nama Lengkap",
+                          icon: Icons.person,
+                        ),
+                      ),
 
-              // Umur
-              TextFormField(
-                controller: umur,
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value!.isEmpty ? "Umur wajib diisi" : null,
-                decoration: const InputDecoration(
-                  labelText: "Umur",
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                      const SizedBox(height: 18),
 
-              const SizedBox(height: 15),
+                      TextFormField(
+                        controller: email,
+                        validator: (v) =>
+                            v!.isEmpty ? "Email wajib diisi" : null,
+                        decoration: inputStyle(
+                          hint: "Email",
+                          icon: Icons.email,
+                        ),
+                      ),
 
-              // Gender
-              DropdownButtonFormField<String>(
-                initialValue: gender,
-                hint: const Text("Pilih Jenis Kelamin"),
-                items: ["Laki-laki", "Perempuan"]
-                    .map((e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() {
-                    gender = val;
-                  });
-                },
-                validator: (value) =>
-                    value == null ? "Pilih jenis kelamin" : null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                      const SizedBox(height: 18),
 
-              const SizedBox(height: 15),
+                      TextFormField(
+                        controller: password,
+                        obscureText: true,
+                        decoration: inputStyle(
+                          hint: "Password",
+                          icon: Icons.lock,
+                        ),
+                      ),
 
-              // GULA DARAH (DROPDOWN)
-              DropdownButtonFormField<String>(
-                initialValue: kategoriGula,
-                hint: const Text("Pilih Kondisi Gula Darah"),
-                items: ["Rendah", "Normal", "Tinggi"]
-                    .map((e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e),
-                        ))
-                    .toList(),
-                onChanged: (val) {
-                  setState(() {
-                    kategoriGula = val;
-                  });
-                },
-                validator: (value) =>
-                    value == null ? "Pilih kondisi gula darah" : null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                ),
-              ),
+                      const SizedBox(height: 18),
 
-              const SizedBox(height: 20),
+                      TextFormField(
+                        controller: confirmPassword,
+                        obscureText: true,
+                        decoration: inputStyle(
+                          hint: "Konfirmasi Password",
+                          icon: Icons.lock_outline,
+                        ),
+                      ),
 
-              // Button daftar
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColor.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
+                      const SizedBox(height: 18),
 
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => HomePage(
-                            nama: name.text,
-                            kategori: kategoriGula!,
+                      TextFormField(
+                        controller: umur,
+                        keyboardType: TextInputType.number,
+                        decoration: inputStyle(
+                          hint: "Umur",
+                          icon: Icons.cake,
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      DropdownButtonFormField<String>(
+                        value: gender,
+
+                        decoration: inputStyle(
+                          hint: "Pilih Gender",
+                          icon: Icons.people,
+                        ),
+
+                        items: ["Laki-laki", "Perempuan"]
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(e),
+                              ),
+                            )
+                            .toList(),
+
+                        onChanged: (val) {
+                          setState(() {
+                            gender = val;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+
+                              if (password.text !=
+                                  confirmPassword.text) {
+
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text("Password tidak sama"),
+                                  ),
+                                );
+
+                                return;
+                              }
+
+                              await register();
+
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text("Registrasi berhasil"),
+                                ),
+                              );
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => LoginPage(),
+                                ),
+                              );
+                            }
+                          },
+
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            elevation: 5,
+
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(15),
+                            ),
+                          ),
+
+                          child: const Text(
+                            "Daftar",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      );
-                    }
-                  },
-                  child: const Text("Daftar"),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center,
+
+                        children: [
+
+                          const Text("Sudah punya akun?"),
+
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+
+                            child: const Text(
+                              "Login",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
                 ),
-              )
-            ],
+              ),
+            ),
           ),
         ),
       ),
