@@ -7,7 +7,10 @@ import 'recipe_page.dart';
 import 'chart_page.dart';
 import 'profile_page.dart';
 import 'login_page.dart';
-import 'account_page.dart';
+
+import 'riwayat_page.dart';
+import '../widgets/search_bar.dart';
+import '../widgets/home_banner.dart';
 
 class HomePage extends StatefulWidget {
   final String nama;
@@ -32,13 +35,36 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int index = 0;
 
-  late final List<Widget> pages = [
-    MenuPage(),
-    FoodPage(), // gabungan snack + drink
-    RecipePage(),
-    ChartPage(),
-    AccountPage(),
+  List<String> allItems = [
+    "Apel",
+    "Pisang",
+    "Jeruk",
+    "Nasi Merah",
+    "Ayam Rebus",
+    "Ikan Bakar",
+    "Teh Tanpa Gula",
+    "Salad Sayur",
   ];
+
+  List<String> riwayat = [];
+
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+
+    pages = [
+      MenuPage(),
+      FoodPage(),
+      RecipePage(),
+      ChartPage(),
+      RiwayatPage(
+        riwayat: riwayat,
+        onDelete: deleteRiwayat,
+      ),
+    ];
+  }
 
   void logout() {
     Navigator.pushAndRemoveUntil(
@@ -48,53 +74,59 @@ class HomePageState extends State<HomePage> {
     );
   }
 
+  void searchItem(String query) {
+    // nanti bisa connect ke menu page / filter global
+  }
+
+  void addRiwayat(String item) {
+    setState(() {
+      riwayat.insert(0, item);
+    });
+  }
+
+  void deleteRiwayat(int index) {
+    setState(() {
+      riwayat.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColor.background,
 
-      appBar: index == 3
-          ? null
-          : AppBar(
-              title: const Text("Diabetes App"),
-              backgroundColor: AppColor.primary,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.person),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProfilePage(
-                          nama: widget.nama,
-                          email: widget.email,
-                          umur: widget.umur,
-                          gender: widget.gender,
-                        ),
-                      ),
-                    );
-                  },
+      appBar: AppBar(
+        title: const Text("Diabetes App"),
+        backgroundColor: AppColor.primary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfilePage(
+                    nama: widget.nama,
+                    email: widget.email,
+                    umur: widget.umur,
+                    gender: widget.gender,
+                  ),
                 ),
-                IconButton(
-                  onPressed: logout,
-                  icon: const Icon(Icons.logout),
-                ),
-              ],
-            ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: logout,
+          ),
+        ],
+      ),
 
       body: Column(
         children: [
+          SearchBarWidget(onChanged: searchItem),
 
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColor.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text("Halo, ${widget.nama}"),
-          ),
+          HomeBanner(nama: widget.nama),
 
           Expanded(
             child: IndexedStack(
@@ -107,8 +139,8 @@ class HomePageState extends State<HomePage> {
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
-        onTap: (i) => setState(() => index = i),
         type: BottomNavigationBarType.fixed,
+        onTap: (i) => setState(() => index = i),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.restaurant),
@@ -127,8 +159,8 @@ class HomePageState extends State<HomePage> {
             label: "Chart",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Akun",
+            icon: Icon(Icons.history),
+            label: "Riwayat",
           ),
         ],
       ),
