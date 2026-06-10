@@ -1,9 +1,11 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart'; // Wajib ditambahkan untuk kIsWeb
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../color.dart'; 
-import 'home_page.dart'; // <-- 1. Ubah import dari chart_page ke home_page
+import 'home_page.dart'; 
 
 class HalamanPilihan extends StatefulWidget {
-  // 2. Tambahkan variabel untuk menampung data user dari halaman login
   final Map<String, dynamic> dataUser;
 
   const HalamanPilihan({super.key, required this.dataUser});
@@ -13,50 +15,98 @@ class HalamanPilihan extends StatefulWidget {
 }
 
 class _HalamanPilihanState extends State<HalamanPilihan> {
+  // Menggunakan getter agar deteksi localhost berjalan mulus di Web/Browser
+  String get baseUrl {
+    if (kIsWeb) {
+      return "http://localhost:8000";
+    }
+    return "http://10.0.2.2:8000";
+  }
+
   final List<Map<String, dynamic>> daftarMakananSuka = [
-    {"nama": "Buah Segar", "icon": Icons.apple, "terpilih": false},
-    {"nama": "Sayuran Hijau", "icon": Icons.eco, "terpilih": false},
-    {"nama": "Olahan Susu", "icon": Icons.egg_alt, "terpilih": false},
-    {"nama": "Daging & Ikan", "icon": Icons.set_meal, "terpilih": false},
-    {"nama": "Kacang-kacangan", "icon": Icons.grain, "terpilih": false},
-    {"nama": "Jus Alami", "icon": Icons.local_drink, "terpilih": false},
+    {"name": "Buah Segar", "icon": Icons.apple, "terpilih": false},
+    {"name": "Sayuran Hijau", "icon": Icons.eco, "terpilih": false},
+    {"name": "Olahan Susu", "icon": Icons.egg_alt, "terpilih": false},
+    {"name": "Daging & Ikan", "icon": Icons.set_meal, "terpilih": false},
+    {"name": "Kacang-kacangan", "icon": Icons.grain, "terpilih": false},
+    {"name": "Jus Alami", "icon": Icons.local_drink, "terpilih": false},
   ];
 
   final List<Map<String, dynamic>> daftarAlergiMakanan = [
-    {"nama": "Seafood / Udang", "icon": Icons.waves, "terpilih": false},
-    {"nama": "Kacang Tanah", "icon": Icons.gavel, "terpilih": false},
-    {"nama": "Gandum / Gluten", "icon": Icons.bakery_dining, "terpilih": false},
-    {"nama": "Telur", "icon": Icons.egg, "terpilih": false},
-    {"nama": "Susu Sapi (Laktosa)", "icon": Icons.water_drop, "terpilih": false},
-    {"nama": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
+    {"name": "Seafood / Udang", "icon": Icons.waves, "terpilih": false},
+    {"name": "Kacang Tanah", "icon": Icons.gavel, "terpilih": false},
+    {"name": "Gandum / Gluten", "icon": Icons.bakery_dining, "terpilih": false},
+    {"name": "Telur", "icon": Icons.egg, "terpilih": false},
+    {"name": "Suku Sapi (Laktosa)", "icon": Icons.water_drop, "terpilih": false},
+    {"name": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
   ];
 
-  void prosesSelesai() {
+  Future<void> kirimPreferensiKeServer(List<String> suka, List<String> alergi) async {
+    try {
+      final String fullUrl = "$baseUrl/api/save-preference";
+      debugPrint("Menghubungi API Preferensi ke: $fullUrl");
+      debugPrint("Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
+
+      final response = await http.post(
+        Uri.parse(fullUrl),
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: jsonEncode({
+          "user_id": widget.dataUser["id"],       
+          "makanan_suka": suka,
+          "alergi_makanan": alergi,              
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      debugPrint("Status Code Preferensi: ${response.statusCode}");
+      debugPrint("Respon Mentah Preferensi: ${response.body}");
+
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final resData = jsonDecode(response.body);
+        debugPrint("✅ Berhasil dari Laravel: ${resData['message']}");
+      } else {
+        debugPrint("❌ Gagal merespon server. Status: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("❌ Terjadi Kesalahan Koneksi/Parsing: $e");
+    }
+  }
+
+  void prosesSelesai() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
     List<String> pilihanSuka = daftarMakananSuka
         .where((item) => item["terpilih"] == true)
-        .map((item) => item["nama"] as String)
+        .map((item) => item["name"] as String)
         .toList();
 
     List<String> pilihanAlergi = daftarAlergiMakanan
         .where((item) => item["terpilih"] == true)
-        .map((item) => item["nama"] as String)
+        .map((item) => item["name"] as String)
         .toList();
 
-    debugPrint("Makanan yang disukai: $pilihanSuka");
-    debugPrint("Alergi makanan: $pilihanAlergi");
+    await kirimPreferensiKeServer(pilihanSuka, pilihanAlergi);
 
-    // 3. DIUBAH: Sekarang pindah ke HomePage dengan membawa data user bawaan login
+    if (!mounted) return;
+    Navigator.pop(context);
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => HomePage(
           id: widget.dataUser["id"],                      
-          nama: widget.dataUser["nama"],
+          nama: widget.dataUser["nama"] ?? widget.dataUser["name"] ?? "-",
           kategori: "-",
-          email: widget.dataUser["email"],
-          tanggalLahir: widget.dataUser["tanggal_lahir"], 
-          umur: widget.dataUser["umur"],                  
-          gender: widget.dataUser["gender"],
+          email: widget.dataUser["email"] ?? "-",
+          tanggalLahir: widget.dataUser["tanggal_lahir"] ?? "-", 
+          umur: widget.dataUser["umur"] ?? 0,                  
+          gender: widget.dataUser["gender"] ?? "-",
         ),
       ),
       (route) => false,
@@ -98,7 +148,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               runSpacing: 10,
               children: daftarMakananSuka.map((item) {
                 return FilterChip(
-                  label: Text(item["nama"]),
+                  label: Text(item["name"]),
                   avatar: Icon(
                     item["icon"], 
                     size: 18, 
@@ -132,7 +182,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               runSpacing: 10,
               children: daftarAlergiMakanan.map((item) {
                 return FilterChip(
-                  label: Text(item["nama"]),
+                  label: Text(item["name"]),
                   avatar: Icon(
                     item["icon"], 
                     size: 18, 
@@ -147,12 +197,12 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
                   ),
                   onSelected: (bool terpilih) {
                     setState(() {
-                      if (item["nama"] == "Tidak Ada Alergi" && terpilih) {
+                      if (item["name"] == "Tidak Ada Alergi" && terpilih) {
                         for (var element in daftarAlergiMakanan) {
                           element["terpilih"] = false;
                         }
-                      } else if (item["nama"] != "Tidak Ada Alergi" && terpilih) {
-                        daftarAlergiMakanan.firstWhere((element) => element["nama"] == "Tidak Ada Alergi")["terpilih"] = false;
+                      } else if (item["name"] != "Tidak Ada Alergi" && terpilih) {
+                        daftarAlergiMakanan.firstWhere((element) => element["name"] == "Tidak Ada Alergi")["terpilih"] = false;
                       }
                       item["terpilih"] = terpilih;
                     });

@@ -5,7 +5,7 @@ class RegisterForm extends StatelessWidget {
   final TextEditingController email;
   final TextEditingController password;
   final TextEditingController confirmPassword;
-  final TextEditingController tanggalLahir; // Menerima parameter tanggalLahir
+  final TextEditingController tanggalLahir; 
 
   final String? gender;
   final Function(String?) onGenderChanged;
@@ -91,23 +91,26 @@ class RegisterForm extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // INPUT TANGGAL LAHIR (Menggunakan DatePicker)
+          // INPUT TANGGAL LAHIR
           TextField(
             controller: tanggalLahir,
-            readOnly: true, // Mencegah keyboard muncul agar user memilih lewat kalender
+            readOnly: true, 
             decoration: inputStyle("Tanggal Lahir", Icons.calendar_month),
             onTap: () async {
               DateTime? pickedDate = await showDatePicker(
                 context: context,
-                initialDate: DateTime(2000), // Default penunjuk tahun awal kalender terbuka
-                firstDate: DateTime(1940),   // Batas awal tahun terkecil
-                lastDate: DateTime.now(),    // Batas akhir (hari ini)
+                initialDate: DateTime(2000), 
+                firstDate: DateTime(1940),   
+                lastDate: DateTime.now(),    
               );
 
               if (pickedDate != null) {
-                // Menyusun format tanggal agar sesuai kriteria database MySQL (YYYY-MM-DD)
-                String formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-                tanggalLahir.text = formattedDate;
+                String y = pickedDate.year.toString();
+                String m = pickedDate.month.toString().padLeft(2, "0");
+                String d = pickedDate.day.toString().padLeft(2, "0");
+                
+                // Memasukkan hasil ke dalam controller text agar laporannya beres
+                tanggalLahir.text = "$y-$m-$d";
               }
             },
           ),

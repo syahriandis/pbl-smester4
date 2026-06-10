@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // Dibutuhkan untuk mendeteksi kIsWeb
+import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,12 +26,9 @@ class LoginForm extends StatefulWidget {
 
 class _LoginFormState extends State<LoginForm> {
   bool isLoading = false;
-
-  // Otomatis ganti ke localhost jika running di Chrome (Web) dan IP Emulator jika di Android
   final String baseUrl = kIsWeb ? "http://localhost:8000" : "http://10.0.2.2:8000";
 
   Future<void> login() async {
-    // Validasi input kosong agar tidak memicu error server
     if (widget.email.text.trim().isEmpty || widget.password.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Email dan Password tidak boleh kosong!")),
@@ -86,7 +83,6 @@ class _LoginFormState extends State<LoginForm> {
           ),
         ],
       ),
-
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -95,9 +91,7 @@ class _LoginFormState extends State<LoginForm> {
             size: 80,
             color: AppColor.primary,
           ),
-
           const SizedBox(height: 15),
-
           const Text(
             "Selamat Datang",
             style: TextStyle(
@@ -105,7 +99,6 @@ class _LoginFormState extends State<LoginForm> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 30),
 
           // EMAIL
@@ -123,7 +116,6 @@ class _LoginFormState extends State<LoginForm> {
             ),
             keyboardType: TextInputType.emailAddress,
           ),
-
           const SizedBox(height: 20),
 
           // PASSWORD
@@ -141,7 +133,6 @@ class _LoginFormState extends State<LoginForm> {
               ),
             ),
           ),
-
           const SizedBox(height: 30),
 
           // BUTTON LOGIN
@@ -149,7 +140,9 @@ class _LoginFormState extends State<LoginForm> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: isLoading ? null : () => login(),
+              onPressed: isLoading ? null : () {
+                login();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.primary,
                 shape: RoundedRectangleBorder(
@@ -175,7 +168,6 @@ class _LoginFormState extends State<LoginForm> {
                     ),
             ),
           ),
-
           const SizedBox(height: 15),
 
           // REGISTER

@@ -11,159 +11,114 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    // REGISTER
+    // --------------------------------------------------------
+    // API REGISTER
+    // --------------------------------------------------------
     public function register(Request $request)
     {
+        // 1. Validasi Input dari Flutter
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6',
-            'tanggal_lahir' => 'required|date_format:Y-m-d', 
-            'gender' => 'required|string', 
+            'email' => 'required|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6',
+            'tanggal_lahir' => 'required|date',
+            'gender' => 'required|string',
         ]);
 
+        // Jika validasi gagal, kirim pesan error ke Flutter
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first(),
+                'message' => 'Validasi gagal gess',
+                'errors' => $validator->errors()
             ], 422);
         }
 
         try {
+            // 2. Simpan ke database menggunakan Query Builder
             DB::table('users')->insert([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make($request->password), 
+                'password' => Hash::make($request->password),
                 'tanggal_lahir' => $request->tanggal_lahir,
                 'gender' => $request->gender,
-                'tinggi_badan' => null,
-                'berat_badan' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
+
+            // Ambil data user yang barusan didaftarkan untuk dikirim balik
+            $user = DB::table('users')->where('email', $request->email)->first();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registrasi berhasil',
+                'message' => 'Registrasi berhasil gess!',
+                'user' => [
+                    'id' => $user->id,
+                    'nama' => $user->name,
+                    'email' => $user->email,
+                    'tanggal_lahir' => $user->tanggal_lahir,
+                    'gender' => $user->gender,
+                    'umur' => Carbon::parse($user->tanggal_lahir)->age, 
+                ]
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan ke database: ' . $e->getMessage(),
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
             ], 500);
         }
     }
 
-    // LOGIN
+    // --------------------------------------------------------
+    // API LOGIN
+    // --------------------------------------------------------
     public function login(Request $request)
     {
+        // 1. Validasi Input Login
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|string|email',
+            'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first(),
+                'message' => 'Email dan password wajib diisi!',
             ], 422);
         }
 
-        $user = DB::table('users')->where('email', $request->email)->first();
+        try {
+            // 2. Cari user berdasarkan email
+            $user = DB::table('users')->where('email', $request->email)->first();
 
-        if (!$user) {
+            // 3. Cek apakah user ada dan password-nya cocok
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Email atau Password salah gess!',
+                ], 401);
+            }
+
+            // 4. Jika sukses, kirim data user ke Flutter
+            return response()->json([
+                'success' => true,
+                'message' => 'Login berhasil!',
+                'user' => [
+                    'id' => $user->id,
+                    'nama' => $user->name,
+                    'email' => $user->email,
+                    'tanggal_lahir' => $user->tanggal_lahir,
+                    'gender' => $user->gender,
+                    'umur' => Carbon::parse($user->password ? $user->tanggal_lahir : Carbon::now())->age,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email tidak ditemukan',
-            ], 404);
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
+            ], 500);
         }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Password salah',
-            ], 401);
-        }
-
-        // Kalkulasi umur otomatis berdasarkan tanggal lahir
-        $umurOtomatis = Carbon::parse($user->tanggal_lahir)->age;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login berhasil',
-            'user' => [
-                'id' => $user->id,
-                'nama' => $user->name,
-                'email' => $user->email,
-                'tanggal_lahir' => $user->tanggal_lahir,
-                'umur' => $umurOtomatis, 
-                'gender' => $user->gender,
-                'tinggi_badan' => $user->tinggi_badan,
-                'berat_badan' => $user->berat_badan,
-            ],
-        ]);
-    }
-
-    // LOAD PROFILE TERBARU
-    public function loadProfile($id)
-    {
-        $user = DB::table('users')->where('id', $id)->first();
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User tidak ditemukan'], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'user' => [
-                'id' => $user->id,
-                'nama' => $user->name,
-                'email' => $user->email,
-                'tanggal_lahir' => $user->tanggal_lahir,
-                'umur' => Carbon::parse($user->tanggal_lahir)->age,
-                'gender' => $user->gender,
-                'tinggi_badan' => $user->tinggi_badan,
-                'berat_badan' => $user->berat_badan,
-            ]
-        ]);
-    }
-
-    // UPDATE PROFILE (TINGGI & BERAT)
-    public function updateProfile(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'tinggi_badan' => 'required|integer',
-            'berat_badan' => 'required|integer',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-            ], 422);
-        }
-
-        DB::table('users')->where('id', $id)->update([
-            'tinggi_badan' => $request->tinggi_badan,
-            'berat_badan' => $request->berat_badan,
-            'updated_at' => now(),
-        ]);
-
-        $user = DB::table('users')->where('id', $id)->first();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profil berhasil diperbarui',
-            'user' => [
-                'id' => $user->id,
-                'nama' => $user->name,
-                'email' => $user->email,
-                'tanggal_lahir' => $user->tanggal_lahir,
-                'umur' => Carbon::parse($user->tanggal_lahir)->age,
-                'gender' => $user->gender,
-                'tinggi_badan' => $user->tinggi_badan,
-                'berat_badan' => $user->berat_badan,
-            ]
-        ]);
     }
 }
