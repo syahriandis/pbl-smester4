@@ -13,7 +13,7 @@ import '../widgets/search_bar.dart';
 import '../widgets/home_banner.dart';
 
 class HomePage extends StatefulWidget {
-  final int id; 
+  final int idUser; 
   final String nama;
   final String kategori;
   final String email;
@@ -23,7 +23,7 @@ class HomePage extends StatefulWidget {
 
   const HomePage({
     super.key,
-    required this.id,
+    required this.idUser,
     required this.nama,
     required this.kategori,
     required this.email,
@@ -48,7 +48,7 @@ class HomePageState extends State<HomePage> {
       MenuPage(),
       FoodPage(),
       RecipePage(),
-      ChartPage(),
+      ChartPage(idUser: widget.idUser),
       RiwayatPage(riwayat: riwayat, onDelete: deleteRiwayat),
     ];
   }
@@ -82,7 +82,7 @@ class HomePageState extends State<HomePage> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ProfilePage(
-                    id: widget.id, 
+                    id: widget.idUser, 
                     nama: widget.nama,
                     email: widget.email,
                     tanggalLahir: widget.tanggalLahir, 
