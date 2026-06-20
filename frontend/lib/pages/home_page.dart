@@ -38,19 +38,22 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int index = 0;
-  List<String> riwayat = [];
-  late final List<Widget> pages;
+  
+  // Tampungan data riwayat menggunakan format List<Map> agar muat data objek dari API Laravel
+  List<Map<String, dynamic>> riwayat = [];
 
-  @override
-  void initState() {
-    super.initState();
-    pages = [
-      MenuPage(),
-      FoodPage(),
-      RecipePage(),
-      ChartPage(),
-      RiwayatPage(riwayat: riwayat, onDelete: deleteRiwayat),
-    ];
+  // Fungsi jembatan untuk menambah makanan/minuman yang diklik dari FoodPage
+  void tambahRiwayat(Map<String, dynamic> item) {
+    setState(() {
+      riwayat.add(item);
+    });
+  }
+
+  // Fungsi untuk menghapus item riwayat berdasarkan index-nya
+  void deleteRiwayat(int itemIndex) {
+    setState(() {
+      riwayat.removeAt(itemIndex);
+    });
   }
 
   void logout() {
@@ -61,19 +64,32 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  void deleteRiwayat(int index) {
-    setState(() {
-      riwayat.removeAt(index);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Array dideklarasikan di sini agar setiap kali terjadi setState(), 
+    // halaman RiwayatPage & FoodPage selalu dipasok data riwayat paling fresh gess!
+    final List<Widget> livePages = [
+      MenuPage(),
+      FoodPage(
+        riwayat: riwayat,
+        onTambah: tambahRiwayat,
+        onDelete: deleteRiwayat,
+      ),
+      RecipePage(),
+      ChartPage(),
+      RiwayatPage(
+        riwayat: riwayat, 
+        onDelete: deleteRiwayat,
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppColor.background,
       appBar: AppBar(
-        title: const Text("SobatGula"),
+        title: const Text("SobatGula", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColor.primary,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // Biar ga ada tombol back setelah masuk dari HalamanPilihan
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
@@ -98,20 +114,25 @@ class HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          
+          // Search bar dan banner hanya ngetem di tab Menu (index 0) gess
           if (index == 0) ...[
             SearchBarWidget(onChanged: (q) {}),
             HomeBanner(nama: widget.nama),
           ],
           
           Expanded(
-            child: IndexedStack(index: index, children: pages),
+            child: IndexedStack(
+              index: index, 
+              children: livePages,
+            ),
           ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: index,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppColor.primary,
+        unselectedItemColor: Colors.grey,
         onTap: (i) => setState(() => index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.restaurant), label: "Menu"),

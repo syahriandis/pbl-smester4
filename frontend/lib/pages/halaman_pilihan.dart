@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // Wajib ditambahkan untuk kIsWeb
+import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../color.dart'; 
@@ -15,7 +15,6 @@ class HalamanPilihan extends StatefulWidget {
 }
 
 class _HalamanPilihanState extends State<HalamanPilihan> {
-  // Menggunakan getter agar deteksi localhost berjalan mulus di Web/Browser
   String get baseUrl {
     if (kIsWeb) {
       return "http://localhost:8000";
@@ -45,7 +44,6 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     try {
       final String fullUrl = "$baseUrl/api/save-preference";
       debugPrint("Menghubungi API Preferensi ke: $fullUrl");
-      debugPrint("Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
 
       final response = await http.post(
         Uri.parse(fullUrl),
@@ -59,9 +57,6 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
           "alergi_makanan": alergi,              
         }),
       ).timeout(const Duration(seconds: 10));
-
-      debugPrint("Status Code Preferensi: ${response.statusCode}");
-      debugPrint("Respon Mentah Preferensi: ${response.body}");
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         final resData = jsonDecode(response.body);
@@ -96,13 +91,14 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     if (!mounted) return;
     Navigator.pop(context);
 
+    // PENANDA: Navigasi pushAndRemoveUntil disinkronkan dengan constructor HomePage baru
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => HomePage(
           id: widget.dataUser["id"],                      
           nama: widget.dataUser["nama"] ?? widget.dataUser["name"] ?? "-",
-          kategori: "-",
+          kategori: widget.dataUser["kategori"] ?? "-",
           email: widget.dataUser["email"] ?? "-",
           tanggalLahir: widget.dataUser["tanggal_lahir"] ?? "-", 
           umur: widget.dataUser["umur"] ?? 0,                  

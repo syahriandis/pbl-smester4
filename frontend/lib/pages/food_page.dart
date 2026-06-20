@@ -1,67 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../color.dart';
 
 class FoodPage extends StatefulWidget {
-  const FoodPage({super.key});
+  final List<Map<String, dynamic>> riwayat;
+  final Function(Map<String, dynamic>) onTambah;
+  final Function(int) onDelete;
+
+  const FoodPage({
+    super.key,
+    required this.riwayat,
+    required this.onTambah,
+    required this.onDelete,
+  });
 
   @override
   State<FoodPage> createState() => _FoodPageState();
 }
 
 class _FoodPageState extends State<FoodPage> {
-  List<Map<String, dynamic>> drinks = [
-    {
-      "nama": "Air Putih",
-      "gambar": "assets/air.jpg",
-      "takaran": "250 ml",
-      "gula": 0,
-    },
-    {
-      "nama": "Teh Hijau",
-      "gambar": "assets/teh.jpg",
-      "takaran": "250 ml",
-      "gula": 0,
-    },
-    {
-      "nama": "Jus Alpukat",
-      "gambar": "assets/alpukat.jpg",
-      "takaran": "200 ml",
-      "gula": 5,
-    },
-  ];
+  List<dynamic> drinks = [];
+  List<dynamic> snacks = [];
+  bool isLoading = true; 
+  String pesanError = "";
 
-  List<Map<String, dynamic>> snacks = [
-    {
-      "nama": "Almond",
-      "gambar": "assets/almond.jpg",
-      "takaran": "30 g",
-      "gula": 1,
-    },
-    {
-      "nama": "Yogurt",
-      "gambar": "assets/yogurt.jpg",
-      "takaran": "100 g",
-      "gula": 5,
-    },
-    {
-      "nama": "Apel",
-      "gambar": "assets/apel.jpg",
-      "takaran": "150 g",
-      "gula": 10,
-    },
-  ];
+  final String baseUrl = kIsWeb ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
 
-  int get totalDrinkSugar =>
-      drinks.fold(0, (sum, item) => sum + (item["gula"] as int));
+  @override
+  void initState() {
+    super.initState();
+    fetchData(); 
+  }
 
-  int get totalSnackSugar =>
-      snacks.fold(0, (sum, item) => sum + (item["gula"] as int));
+  Future<void> fetchData() async {
+    final String url = "$baseUrl/api/food-items"; 
 
-  Widget warningBox(int total) {
-    if (total <= 15) {
-      return const SizedBox();
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        setState(() {
+          drinks = responseData["data"]["drinks"] ?? [];
+          snacks = responseData["data"]["snacks"] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+          pesanError = "Server Laravel nolak, status code: ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        pesanError = "Mampet di Flutter! Detail Error:\n$e";
+      });
     }
+  }
 
+  double get totalSelectedSugar => widget.riwayat.fold(0.0, (sum, item) => sum + (item["gula"] as num).toDouble());
+  double get totalDrinkSugar => totalSelectedSugar;
+  double get totalSnackSugar => totalSelectedSugar;
+
+  Widget warningBox(double total) {
+    if (total <= 15.0) return const SizedBox();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -72,20 +78,12 @@ class _FoodPageState extends State<FoodPage> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.warning_rounded,
-            color: Colors.red[700],
-            size: 22,
-          ),
+          Icon(Icons.warning_rounded, color: Colors.red[700], size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "Peringatan: Total konsumsi gula terlalu tinggi!",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: Colors.red[800],
-              ),
+              "Peringatan: Total konsumsi gula terlalu tinggi gess!",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red[800]),
             ),
           ),
         ],
@@ -93,103 +91,15 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 
-  void tambahMenu(bool isDrink) {
-    TextEditingController nama = TextEditingController();
-    TextEditingController takaran = TextEditingController();
-    TextEditingController gula = TextEditingController();
+  void tambahMenu(Map<String, dynamic> item) {
+    widget.onTambah(item);
 
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            isDrink ? "Tambah Minuman" : "Tambah Snack",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nama,
-                  decoration: InputDecoration(
-                    labelText: "Nama Menu",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: takaran,
-                  decoration: InputDecoration(
-                    labelText: "Takaran (misal: 250 ml, 50 g)",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: gula,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Kandungan Gula (gram)",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                "Batal",
-                style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColor.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              onPressed: () {
-                final item = {
-                  "nama": nama.text,
-                  "gambar": "",
-                  "takaran": takaran.text,
-                  "gula": int.tryParse(gula.text) ?? 0,
-                };
-
-                setState(() {
-                  if (isDrink) {
-                    drinks.add(item);
-                  } else {
-                    snacks.add(item);
-                  }
-                });
-
-                Navigator.pop(context);
-              },
-              child: const Text("Tambah", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${item['nama']} masuk ke riwayat gess!"),
+        backgroundColor: AppColor.primary, // Balik ke warna utama gess
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 
@@ -198,41 +108,37 @@ class _FoodPageState extends State<FoodPage> {
       context: context,
       builder: (_) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            item["nama"],
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(item["nama"], style: const TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.scale, color: Colors.grey, size: 20),
-                  const SizedBox(width: 8),
-                  Text("Takaran Saji: ${item["takaran"]}", style: const TextStyle(fontSize: 15)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.cookie, color: Colors.amber, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Kandungan Gula: ${item["gula"]} g",
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
+              _buildDetailRow(Icons.scale, Colors.grey, "Takaran Saji: ${item["takaran"]}"),
+              const Divider(height: 20),
+              _buildDetailRow(Icons.local_fire_department, Colors.orange, "Kalori: ${item["kalori"]} kcal"),
+              _buildDetailRow(Icons.fitness_center, Colors.red, "Protein: ${item["protein"]} g"),
+              _buildDetailRow(Icons.water_drop, Colors.blue, "Lemak: ${item["lemak"]} g"),
+              _buildDetailRow(Icons.grain, Colors.green, "Karbohidrat: ${item["karbo"]} g"),
+              _buildDetailRow(Icons.cookie, Colors.amber, "Gula: ${item["gula"]} g", isBold: true),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Tutup", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text("Tutup", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColor.primary, 
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                tambahMenu(Map<String, dynamic>.from(item)); 
+                Navigator.pop(context); 
+              },
+              child: const Text("Pilih Menu Ini", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -240,71 +146,69 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 
+  Widget _buildDetailRow(IconData icon, Color color, String text, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Text(
+            text,
+            style: TextStyle(fontSize: 15, fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildCard(Map item, Color indicatorColor) {
     return Container(
-      width: 150,
+      width: 155, 
       margin: const EdgeInsets.only(right: 14, bottom: 6, top: 2),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromARGB(10, 0, 0, 0),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color.fromARGB(10, 0, 0, 0), blurRadius: 8, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-            child: item["gambar"] != ""
-                ? Image.asset(
-                    item["gambar"],
-                    height: 95,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
+            child: item["gambar"] != null && item["gambar"] != ""
+                ? Image.network(item["gambar"], height: 95, width: double.infinity, fit: BoxFit.cover)
                 : Container(
                     height: 95,
                     width: double.infinity,
                     color: Colors.grey[100],
-                    child: Icon(
-                      Icons.fastfood_rounded,
-                      size: 36,
-                      color: Colors.grey[400],
-                    ),
+                    child: Icon(Icons.fastfood_rounded, size: 36, color: Colors.grey[400]),
                   ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
             child: Text(
-              item["nama"],
+              item["nama"], 
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 2),
+            child: Text("${item["kalori"]} kcal", style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: indicatorColor.withValues(alpha: 0.15),
+                color: indicatorColor.withAlpha(38), 
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                "${item["gula"]} g Gula",
-                style: TextStyle(
-                  fontSize: 11,
-                  color: indicatorColor,
-                  fontWeight: FontWeight.bold,
-                ),
+                "${item["gula"]} g Gula", 
+                style: TextStyle(fontSize: 11, color: indicatorColor, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -316,17 +220,12 @@ class _FoodPageState extends State<FoodPage> {
               height: 32,
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   side: BorderSide(color: Colors.grey[300]!),
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: () => showDetail(item),
-                child: Text(
-                  "Detail",
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w600),
-                ),
+                child: Text("Detail", style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w600)),
               ),
             ),
           ),
@@ -335,20 +234,14 @@ class _FoodPageState extends State<FoodPage> {
     );
   }
 
-  Widget _buildSugarDashboard(int totalAmount) {
+  Widget _buildSugarDashboard(double totalAmount) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromARGB(8, 0, 0, 0),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color.fromARGB(8, 0, 0, 0), blurRadius: 6, offset: Offset(0, 2))],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -358,11 +251,11 @@ class _FoodPageState extends State<FoodPage> {
             children: [
               Text(
                 "Akumulasi Gula",
-                style: TextStyle(fontSize: 12, color: Colors.grey[50], fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 4),
               Text(
-                "$totalAmount gram",
+                "${totalAmount.toStringAsFixed(1)} gram",
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
             ],
@@ -370,15 +263,15 @@ class _FoodPageState extends State<FoodPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: totalAmount > 15 ? Colors.red[50] : Colors.green[50],
+              color: totalAmount > 15.0 ? Colors.red[50] : Colors.green[50],
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              totalAmount > 15 ? "Overlimit" : "Aman",
+              totalAmount > 15.0 ? "Overlimit" : "Aman",
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: totalAmount > 15 ? Colors.red[700] : Colors.green[700],
+                color: totalAmount > 15.0 ? Colors.red[700] : Colors.green[700],
               ),
             ),
           ),
@@ -393,84 +286,97 @@ class _FoodPageState extends State<FoodPage> {
       length: 2,
       child: Scaffold(
         backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          backgroundColor: AppColor.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          titleSpacing: 0, 
-          title: const TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Color.fromARGB(179, 255, 255, 255),
-            indicatorWeight: 3,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            tabs: [
-              Tab(text: "Minuman"),
-              Tab(text: "Snack"),
-            ],
-          ),
-        ),
-        floatingActionButton: Builder(
-          builder: (context) {
-            return FloatingActionButton(
-              backgroundColor: AppColor.primaryLight,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              onPressed: () {
-                final tabIndex = DefaultTabController.of(context).index;
-                tambahMenu(tabIndex == 0);
-              },
-              child: const Icon(Icons.add, size: 28),
-            );
-          },
-        ),
-        body: TabBarView(
+        body: Column(
           children: [
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  warningBox(totalDrinkSugar),
-                  _buildSugarDashboard(totalDrinkSugar),
-                  SizedBox(
-                    height: 240,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: drinks.length,
-                      itemBuilder: (context, index) {
-                        return buildCard(drinks[index], Colors.blue[700]!);
-                      },
-                    ),
-                  ),
+            // KONTROL TAB BAR YANG BERDIRI SENDIRI DENGAN JARAK AMAN
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 20, 16, 8), 
+              decoration: BoxDecoration(
+                color: AppColor.primary, // Balik ke warna utama awal gess biar serasi!
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const TabBar(
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Color.fromARGB(179, 255, 255, 255),
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                tabs: [
+                  Tab(height: 42, text: "Minuman"), 
+                  Tab(height: 42, text: "Snack")
                 ],
               ),
             ),
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  warningBox(totalSnackSugar),
-                  _buildSugarDashboard(totalSnackSugar),
-                  SizedBox(
-                    height: 240,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: snacks.length,
-                      itemBuilder: (context, index) {
-                        return buildCard(snacks[index], Colors.orange[700]!);
-                      },
-                    ),
-                  ),
-                ],
-              ),
+            
+            // AREA ISI CONTENT UTAMA
+            Expanded(
+              child: isLoading 
+                ? const Center(child: CircularProgressIndicator()) 
+                : pesanError.isNotEmpty
+                    ? Center(child: Text(pesanError, style: const TextStyle(color: Colors.red)))
+                    : TabBarView(
+                        children: [
+                          _buildTabContent(totalDrinkSugar, drinks, Colors.blue[700]!),
+                          _buildTabContent(totalSnackSugar, snacks, Colors.orange[700]!),
+                        ],
+                      ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTabContent(double totalSugar, List<dynamic> items, Color color) {
+    if (items.isEmpty) {
+      return const Center(child: Text("Belum ada data dari database gess."));
+    }
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isMobile = constraints.maxWidth < 600;
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              warningBox(totalSugar),
+              _buildSugarDashboard(totalSugar),
+              
+              isMobile 
+                ? GridView.builder(
+                    shrinkWrap: true, 
+                    physics: const NeverScrollableScrollPhysics(), 
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, 
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 250, 
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      return buildCard(items[index], color);
+                    },
+                  )
+                : SizedBox(
+                    height: 270, 
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        return buildCard(items[index], color);
+                      },
+                    ),
+                  ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
