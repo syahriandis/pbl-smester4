@@ -13,7 +13,7 @@ import '../widgets/search_bar.dart';
 import '../widgets/home_banner.dart';
 
 class HomePage extends StatefulWidget {
-  final int id; 
+  final int idUser; 
   final String nama;
   final String kategori;
   final String email;
@@ -23,7 +23,7 @@ class HomePage extends StatefulWidget {
 
   const HomePage({
     super.key,
-    required this.id,
+    required this.idUser,
     required this.nama,
     required this.kategori,
     required this.email,
@@ -59,24 +59,23 @@ class HomePageState extends State<HomePage> {
   void logout() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => LoginPage()),
+      MaterialPageRoute(builder: (_) =>  LoginPage()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Array dideklarasikan di sini agar setiap kali terjadi setState(), 
-    // halaman RiwayatPage & FoodPage selalu dipasok data riwayat paling fresh gess!
+    // Konflik Berhasil Digabung: Array livePages dipasok data paling fresh beserta parameter ChartPage kawan lu
     final List<Widget> livePages = [
-      MenuPage(),
+      const MenuPage(),
       FoodPage(
         riwayat: riwayat,
         onTambah: tambahRiwayat,
         onDelete: deleteRiwayat,
       ),
       RecipePage(),
-      ChartPage(),
+      ChartPage(idUser: widget.idUser), // Fitur kawan lu aman di sini gess!
       RiwayatPage(
         riwayat: riwayat, 
         onDelete: deleteRiwayat,
@@ -98,7 +97,7 @@ class HomePageState extends State<HomePage> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ProfilePage(
-                    id: widget.id, 
+                    id: widget.idUser, 
                     nama: widget.nama,
                     email: widget.email,
                     tanggalLahir: widget.tanggalLahir, 

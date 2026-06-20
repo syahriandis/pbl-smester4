@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../color.dart'; 
-import 'home_page.dart'; 
+import '../color.dart';
+import 'home_page.dart';
 
 class HalamanPilihan extends StatefulWidget {
   final Map<String, dynamic> dataUser;
@@ -36,27 +36,38 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     {"name": "Kacang Tanah", "icon": Icons.gavel, "terpilih": false},
     {"name": "Gandum / Gluten", "icon": Icons.bakery_dining, "terpilih": false},
     {"name": "Telur", "icon": Icons.egg, "terpilih": false},
-    {"name": "Suku Sapi (Laktosa)", "icon": Icons.water_drop, "terpilih": false},
+    {
+      "name": "Suku Sapi (Laktosa)",
+      "icon": Icons.water_drop,
+      "terpilih": false
+    },
     {"name": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
   ];
 
-  Future<void> kirimPreferensiKeServer(List<String> suka, List<String> alergi) async {
+  Future<void> kirimPreferensiKeServer(
+      List<String> suka, List<String> alergi) async {
     try {
       final String fullUrl = "$baseUrl/api/save-preference";
       debugPrint("Menghubungi API Preferensi ke: $fullUrl");
+      
+      // Konflik Berhasil Digabung Di Sini Gess! Tanda <<<<<< dan ====== sudah hilang
+      debugPrint(
+          "Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
 
-      final response = await http.post(
-        Uri.parse(fullUrl),
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: jsonEncode({
-          "user_id": widget.dataUser["id"],       
-          "makanan_suka": suka,
-          "alergi_makanan": alergi,              
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse(fullUrl),
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json"
+            },
+            body: jsonEncode({
+              "user_id": widget.dataUser["id"],
+              "makanan_suka": suka,
+              "alergi_makanan": alergi,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         final resData = jsonDecode(response.body);
@@ -91,17 +102,26 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     if (!mounted) return;
     Navigator.pop(context);
 
-    // PENANDA: Navigasi pushAndRemoveUntil disinkronkan dengan constructor HomePage baru
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => HomePage(
-          id: widget.dataUser["id"],                      
+          idUser: int.tryParse(
+                (widget.dataUser["id"] ??
+                        widget.dataUser["id_user"] ??
+                        widget.dataUser["IdUser"] ??
+                        0)
+                    .toString(),
+              ) ??
+              0,
           nama: widget.dataUser["nama"] ?? widget.dataUser["name"] ?? "-",
           kategori: widget.dataUser["kategori"] ?? "-",
           email: widget.dataUser["email"] ?? "-",
-          tanggalLahir: widget.dataUser["tanggal_lahir"] ?? "-", 
-          umur: widget.dataUser["umur"] ?? 0,                  
+          tanggalLahir: widget.dataUser["tanggal_lahir"] ?? "-",
+          umur: int.tryParse(
+                (widget.dataUser["umur"] ?? 0).toString(),
+              ) ??
+              0,
           gender: widget.dataUser["gender"] ?? "-",
         ),
       ),
@@ -115,7 +135,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Personalisasi Akun"),
-        backgroundColor: AppColor.primary, 
+        backgroundColor: AppColor.primary,
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
@@ -136,7 +156,10 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             const SizedBox(height: 25),
             const Text(
               "Jenis makanan apa yang kamu suka?",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -145,18 +168,18 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               children: daftarMakananSuka.map((item) {
                 return FilterChip(
                   label: Text(item["name"]),
-                  avatar: Icon(
-                    item["icon"], 
-                    size: 18, 
-                    color: item["terpilih"] ? Colors.white : AppColor.primary 
-                  ),
+                  avatar: Icon(item["icon"],
+                      size: 18,
+                      color:
+                          item["terpilih"] ? Colors.white : AppColor.primary),
                   selected: item["terpilih"],
-                  selectedColor: AppColor.primary, 
+                  selectedColor: AppColor.primary,
                   checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
-                    color: item["terpilih"] ? Colors.white : Colors.black87,
-                    fontWeight: item["terpilih"] ? FontWeight.bold : FontWeight.normal
-                  ),
+                      color: item["terpilih"] ? Colors.white : Colors.black87,
+                      fontWeight: item["terpilih"]
+                          ? FontWeight.bold
+                          : FontWeight.normal),
                   onSelected: (bool terpilih) {
                     setState(() {
                       item["terpilih"] = terpilih;
@@ -170,7 +193,10 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             const SizedBox(height: 15),
             const Text(
               "Apakah kamu memiliki alergi makanan?",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -179,26 +205,30 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               children: daftarAlergiMakanan.map((item) {
                 return FilterChip(
                   label: Text(item["name"]),
-                  avatar: Icon(
-                    item["icon"], 
-                    size: 18, 
-                    color: item["terpilih"] ? Colors.white : Colors.red.shade700
-                  ),
+                  avatar: Icon(item["icon"],
+                      size: 18,
+                      color: item["terpilih"]
+                          ? Colors.white
+                          : Colors.red.shade700),
                   selected: item["terpilih"],
                   selectedColor: Colors.red.shade600,
                   checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
-                    color: item["terpilih"] ? Colors.white : Colors.black87,
-                    fontWeight: item["terpilih"] ? FontWeight.bold : FontWeight.normal
-                  ),
+                      color: item["terpilih"] ? Colors.white : Colors.black87,
+                      fontWeight: item["terpilih"]
+                          ? FontWeight.bold
+                          : FontWeight.normal),
                   onSelected: (bool terpilih) {
                     setState(() {
                       if (item["name"] == "Tidak Ada Alergi" && terpilih) {
                         for (var element in daftarAlergiMakanan) {
                           element["terpilih"] = false;
                         }
-                      } else if (item["name"] != "Tidak Ada Alergi" && terpilih) {
-                        daftarAlergiMakanan.firstWhere((element) => element["name"] == "Tidak Ada Alergi")["terpilih"] = false;
+                      } else if (item["name"] != "Tidak Ada Alergi" &&
+                          terpilih) {
+                        daftarAlergiMakanan.firstWhere((element) =>
+                            element["name"] ==
+                            "Tidak Ada Alergi")["terpilih"] = false;
                       }
                       item["terpilih"] = terpilih;
                     });
@@ -212,13 +242,17 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppColor.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: prosesSelesai,
                 child: const Text(
                   "Selesai & Masuk ke Aplikasi",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
