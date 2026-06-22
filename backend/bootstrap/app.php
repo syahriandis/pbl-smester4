@@ -12,9 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Menambahkan middleware CORS bawaan ke rute API agar browser (Flutter Web) tidak memblokir respon
+        // CORS untuk API / Flutter Web
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
+        // Middleware untuk halaman admin
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
