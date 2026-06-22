@@ -88,13 +88,13 @@ class _ChartPageState extends State<ChartPage> {
       final response = await http.post(
         Uri.parse("$baseUrl/gula-darah"),
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=UTF-8",
           "Accept": "application/json",
         },
         body: jsonEncode({
           "id_user": widget.idUser,
-          "tanggal": tanggalHariIni,
-          "waktu": waktuDipilih,
+          "tanggal": tanggalHariIni.toString(),
+          "waktu": waktuDipilih.toString(),
           "nilai_gula": nilai,
         }),
       );
@@ -103,19 +103,25 @@ class _ChartPageState extends State<ChartPage> {
         gulaController.clear();
         await ambilDataGula();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data gula darah berhasil disimpan")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Data gula darah berhasil disimpan")),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal simpan data: ${response.body}")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal simpan data: ${response.body}")),
+          );
+        }
       }
     } catch (e) {
       debugPrint("Error simpan data gula: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Tidak bisa terhubung ke server")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Tidak bisa terhubung ke server")),
+        );
+      }
     }
   }
 
@@ -128,9 +134,11 @@ class _ChartPageState extends State<ChartPage> {
       if (response.statusCode == 200) {
         await ambilDataGula();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Data berhasil dihapus")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Data berhasil dihapus")),
+          );
+        }
       }
     } catch (e) {
       debugPrint("Error hapus data: $e");
@@ -246,22 +254,6 @@ class _ChartPageState extends State<ChartPage> {
     final riwayatTampil = getRiwayatTampil();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Grafik Gula Darah"),
-        backgroundColor: AppColor.primary,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => LoginPage()),
-                (route) => false,
-              );
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -367,8 +359,7 @@ class _ChartPageState extends State<ChartPage> {
                                   dotData: const FlDotData(show: true),
                                   belowBarData: BarAreaData(
                                     show: true,
-                                    color:
-                                        AppColor.primary.withValues(alpha: 0.2),
+                                    color: AppColor.primary.withOpacity(0.2),
                                   ),
                                   spots: List.generate(
                                     dataGrafik.length,
@@ -393,7 +384,7 @@ class _ChartPageState extends State<ChartPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColor.primary.withValues(alpha: 0.1),
+                      color: AppColor.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -516,9 +507,9 @@ class _ChartPageState extends State<ChartPage> {
 
                             final int id =
                                 int.tryParse(data["id"].toString()) ?? 0;
-                            final int nilai =
-                                int.tryParse(data["nilai_gula"].toString()) ??
-                                    0;
+                            final int nilai = int.tryParse(
+                                    data["nilai_gula"].toString()) ??
+                                0;
 
                             final String status = getStatus(nilai);
 

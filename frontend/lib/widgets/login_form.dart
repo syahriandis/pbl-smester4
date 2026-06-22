@@ -29,11 +29,24 @@ class _LoginFormState extends State<LoginForm> {
   final String baseUrl = kIsWeb ? "http://localhost:8000" : "http://10.0.2.2:8000";
 
   Future<void> login() async {
+    // 1. Validasi jika kolom input kosong
     if (widget.email.text.trim().isEmpty || widget.password.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Email dan Password tidak boleh kosong!")),
       );
       return;
+    }
+
+    // 2. ✔ VALIDASI REGEX KHUSUS GMAIL (Tameng penolak email palsu saat Login)
+    final gmailRegex = RegExp(r"^[a-zA-Z0-9.]+@gmail\.com$");
+    if (!gmailRegex.hasMatch(widget.email.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Format email salah! Gunakan akun @gmail.com gess."),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return; // Stop proses login
     }
 
     setState(() => isLoading = true);
@@ -104,6 +117,7 @@ class _LoginFormState extends State<LoginForm> {
           // EMAIL
           TextField(
             controller: widget.email,
+            keyboardType: TextInputType.emailAddress, // Menampilkan keyboard khusus email di HP
             decoration: InputDecoration(
               hintText: "Email",
               prefixIcon: const Icon(Icons.email),
@@ -114,7 +128,6 @@ class _LoginFormState extends State<LoginForm> {
                 borderSide: BorderSide.none,
               ),
             ),
-            keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 20),
 

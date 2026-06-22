@@ -38,18 +38,14 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   int index = 0;
-  
-  // Tampungan data riwayat menggunakan format List<Map> agar muat data objek dari API Laravel
   List<Map<String, dynamic>> riwayat = [];
 
-  // Fungsi jembatan untuk menambah makanan/minuman yang diklik dari FoodPage
   void tambahRiwayat(Map<String, dynamic> item) {
     setState(() {
       riwayat.add(item);
     });
   }
 
-  // Fungsi untuk menghapus item riwayat berdasarkan index-nya
   void deleteRiwayat(int itemIndex) {
     setState(() {
       riwayat.removeAt(itemIndex);
@@ -59,14 +55,13 @@ class HomePageState extends State<HomePage> {
   void logout() {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) =>  LoginPage()),
+      MaterialPageRoute(builder: (_) => LoginPage()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Konflik Berhasil Digabung: Array livePages dipasok data paling fresh beserta parameter ChartPage kawan lu
     final List<Widget> livePages = [
       const MenuPage(),
       FoodPage(
@@ -74,8 +69,11 @@ class HomePageState extends State<HomePage> {
         onTambah: tambahRiwayat,
         onDelete: deleteRiwayat,
       ),
-      RecipePage(),
-      ChartPage(idUser: widget.idUser), // Fitur kawan lu aman di sini gess!
+      RecipePage(
+        riwayat: riwayat,
+        onTambah: tambahRiwayat,
+      ),
+      ChartPage(idUser: widget.idUser), 
       RiwayatPage(
         riwayat: riwayat, 
         onDelete: deleteRiwayat,
@@ -88,7 +86,7 @@ class HomePageState extends State<HomePage> {
         title: const Text("SobatGula", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColor.primary,
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // Biar ga ada tombol back setelah masuk dari HalamanPilihan
+        automaticallyImplyLeading: false, 
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
@@ -113,12 +111,10 @@ class HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
-          // Search bar dan banner hanya ngetem di tab Menu (index 0) gess
           if (index == 0) ...[
             SearchBarWidget(onChanged: (q) {}),
             HomeBanner(nama: widget.nama),
           ],
-          
           Expanded(
             child: IndexedStack(
               index: index, 

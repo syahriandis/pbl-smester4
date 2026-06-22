@@ -1,12 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-// Import semua controller kamu di atas gess biar gak typo dan kebaca sistem
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PreferenceController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\GulaDarahController;
+use App\Http\Controllers\Api\ResepController; // ✔ Tambah Import ResepController
 
 // 1. OTENTIKASI (AUTH)
 Route::post('/register', [AuthController::class, 'register']);
@@ -28,3 +28,6 @@ Route::post('/food-items', [FoodController::class, 'storeFood']);
 Route::get('/gula-darah/{id_user}', [GulaDarahController::class, 'index']);
 Route::post('/gula-darah', [GulaDarahController::class, 'store']);
 Route::delete('/gula-darah/{id}', [GulaDarahController::class, 'destroy']);
+
+// 6. KATALOG RESEP DIABETES
+Route::get('/resep', [ResepController::class, 'index']);

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // Dibutuhkan untuk kIsWeb
+import 'package:flutter/foundation.dart'; 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,7 +22,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String? gender;
 
-  // Menggunakan 'get' agar nilainya dinamis saat dipanggil
   String get baseUrl {
     if (kIsWeb) {
       return "http://localhost:8000";
@@ -31,15 +30,26 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> register() async {
+    // ✔ VALIDASI REGEX KHUSUS GMAIL (Tameng penolak email palsu di Register)
+    final gmailRegex = RegExp(r"^[a-zA-Z0-9.]+@gmail\.com$");
+    if (!gmailRegex.hasMatch(email.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Wajib menggunakan Gmail asli gess! (Contoh: nama@gmail.com)"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return; // Stop proses, tidak dikirim ke Laravel
+    }
+
     try {
       debugPrint("Menghubungi API ke: $baseUrl/api/register");
 
-      // Mengubah request menjadi JSON murni agar serasi dengan backend
       final response = await http.post(
         Uri.parse("$baseUrl/api/register"), 
         headers: {
           "Accept": "application/json",
-          "Content-Type": "application/json", // Diubah ke JSON
+          "Content-Type": "application/json", 
         },
         body: jsonEncode({
           "name": name.text.trim(), 

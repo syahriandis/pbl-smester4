@@ -61,21 +61,19 @@ class RegisterForm extends StatelessWidget {
           ),
           const SizedBox(height: 30),
 
-          // INPUT NAMA
           TextField(
             controller: name,
             decoration: inputStyle("Nama Lengkap", Icons.person),
           ),
           const SizedBox(height: 18),
 
-          // INPUT EMAIL
           TextField(
             controller: email,
+            keyboardType: TextInputType.emailAddress, // ✔ Menampilkan keyboard khusus email di HP
             decoration: inputStyle("Email", Icons.email),
           ),
           const SizedBox(height: 18),
 
-          // INPUT PASSWORD
           TextField(
             controller: password,
             obscureText: true,
@@ -83,7 +81,6 @@ class RegisterForm extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // INPUT KONFIRMASI PASSWORD
           TextField(
             controller: confirmPassword,
             obscureText: true,
@@ -91,7 +88,6 @@ class RegisterForm extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // INPUT TANGGAL LAHIR
           TextField(
             controller: tanggalLahir,
             readOnly: true, 
@@ -109,14 +105,12 @@ class RegisterForm extends StatelessWidget {
                 String m = pickedDate.month.toString().padLeft(2, "0");
                 String d = pickedDate.day.toString().padLeft(2, "0");
                 
-                // Memasukkan hasil ke dalam controller text agar laporannya beres
                 tanggalLahir.text = "$y-$m-$d";
               }
             },
           ),
           const SizedBox(height: 18),
 
-          // DROPDOWN GENDER
           DropdownButtonFormField<String>(
             value: gender,
             decoration: inputStyle("Pilih Gender", Icons.people),
@@ -127,7 +121,6 @@ class RegisterForm extends StatelessWidget {
           ),
           const SizedBox(height: 30),
 
-          // TOMBOL DAFTAR
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -136,6 +129,15 @@ class RegisterForm extends StatelessWidget {
                 if (name.text.isEmpty || email.text.isEmpty || password.text.isEmpty || tanggalLahir.text.isEmpty || gender == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Semua kolom wajib diisi")),
+                  );
+                  return;
+                }
+
+                // ✔ VALIDASI KEDUA: Cek format email sebelum lanjut gess
+                final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+                if (!emailRegex.hasMatch(email.text.trim())) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Format penulisan email salah (Contoh: nama@email.com)")),
                   );
                   return;
                 }
