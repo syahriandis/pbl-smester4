@@ -62,7 +62,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               "Content-Type": "application/json"
             },
             body: jsonEncode({
-              "id_user": widget.dataUser["id"],
+              "user_id": widget.dataUser["id"],
               "makanan_suka": suka,
               "alergi_makanan": alergi,
             }),
