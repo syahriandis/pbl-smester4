@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Data Pengguna</title>
+    <title>Data Gula Darah</title>
     <style>
         * {
             margin: 0;
@@ -47,6 +47,10 @@
             margin-top: 30px;
             background: #c62828;
             text-align: center;
+        }
+
+        .logout:hover {
+            background: #b71c1c;
         }
 
         .content {
@@ -94,6 +98,33 @@
             background: #f1f8e9;
         }
 
+        .status-normal {
+            background: #dcfce7;
+            color: #166534;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status-tinggi {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status-rendah {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
         .empty {
             text-align: center;
             color: #777;
@@ -122,8 +153,8 @@
     <div class="content">
 
         <div class="header">
-            <h1>Data Pengguna</h1>
-            <p>Daftar pengguna yang terdaftar di aplikasi diabetes.</p>
+            <h1>Data Gula Darah</h1>
+            <p>Riwayat catatan gula darah pengguna aplikasi diabetes.</p>
         </div>
 
         <div class="table-box">
@@ -131,34 +162,51 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Nama</th>
+                        <th>Nama Pengguna</th>
                         <th>Email</th>
-                        <th>Tanggal Lahir</th>
-                        <th>Gender</th>
-                        <th>Tanggal Daftar</th>
+                        <th>Tanggal</th>
+                        <th>Waktu</th>
+                        <th>Nilai Gula</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    @forelse($users as $user)
+                    @forelse($dataGulaDarah as $item)
+                        @php
+                            if ($item->nilai_gula < 70) {
+                                $status = 'Rendah';
+                                $class = 'status-rendah';
+                            } elseif ($item->nilai_gula <= 140) {
+                                $status = 'Normal';
+                                $class = 'status-normal';
+                            } else {
+                                $status = 'Tinggi';
+                                $class = 'status-tinggi';
+                            }
+                        @endphp
+
                         <tr>
                             <td>{{ $loop->iteration }}</td>
-                            <td>{{ $user->name ?? '-' }}</td>
-                            <td>{{ $user->email ?? '-' }}</td>
-                            <td>{{ $user->tanggal_lahir ?? '-' }}</td>
-                            <td>{{ $user->gender ?? '-' }}</td>
-                            <td>{{ $user->created_at ? $user->created_at->format('d-m-Y') : '-' }}</td>
+                            <td>{{ $item->user->name ?? '-' }}</td>
+                            <td>{{ $item->user->email ?? '-' }}</td>
+                            <td>{{ $item->tanggal ?? '-' }}</td>
+                            <td>{{ $item->waktu ?? '-' }}</td>
+                            <td>{{ $item->nilai_gula ?? '-' }} mg/dL</td>
+                            <td>
+                                <span class="{{ $class }}">{{ $status }}</span>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="empty">Belum ada data pengguna</td>
+                            <td colspan="7" class="empty">Belum ada data gula darah</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
 
             <div class="pagination">
-                {{ $users->links() }}
+                {{ $dataGulaDarah->links() }}
             </div>
         </div>
 

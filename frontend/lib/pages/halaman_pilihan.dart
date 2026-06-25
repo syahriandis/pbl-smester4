@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../color.dart';
@@ -49,7 +49,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     try {
       final String fullUrl = "$baseUrl/api/save-preference";
       debugPrint("Menghubungi API Preferensi ke: $fullUrl");
-      
+
       // Konflik Berhasil Digabung Di Sini Gess! Tanda <<<<<< dan ====== sudah hilang
       debugPrint(
           "Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
@@ -62,7 +62,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               "Content-Type": "application/json"
             },
             body: jsonEncode({
-              "user_id": widget.dataUser["id"],
+              "id_user": widget.dataUser["id"],
               "makanan_suka": suka,
               "alergi_makanan": alergi,
             }),

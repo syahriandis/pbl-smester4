@@ -44,6 +44,7 @@ class AuthController extends Controller
                 'gender' => $request->gender,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
+                'is_personalized' => 0,
             ]);
 
             // Ambil data user yang barusan didaftarkan untuk dikirim balik
@@ -58,7 +59,8 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'tanggal_lahir' => $user->tanggal_lahir,
                     'gender' => $user->gender,
-                    'umur' => Carbon::parse($user->tanggal_lahir)->age, 
+                    'umur' => Carbon::parse($user->tanggal_lahir)->age,
+                    'is_personalized' => $user->is_personalized,
                 ]
             ], 201);
 
@@ -111,6 +113,7 @@ class AuthController extends Controller
                     'tanggal_lahir' => $user->tanggal_lahir,
                     'gender' => $user->gender,
                     'umur' => Carbon::parse($user->password ? $user->tanggal_lahir : Carbon::now())->age,
+                    'is_personalized' => $user->is_personalized,
                 ]
             ], 200);
 

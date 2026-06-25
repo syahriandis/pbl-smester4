@@ -14,4 +14,9 @@ class GulaDarah extends Model
         'waktu',
         'nilai_gula',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_user');
+    }
 }

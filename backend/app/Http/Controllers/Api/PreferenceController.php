@@ -10,12 +10,8 @@ use Carbon\Carbon;
 
 class PreferenceController extends Controller
 {
-    // --------------------------------------------------------
-    // 1. POST: SIMPAN PREFERENSI MAKANAN & ALERGI
-    // --------------------------------------------------------
     public function savePreference(Request $request)
     {
-        // Validasi input array yang dikirim oleh Flutter
         $validator = Validator::make($request->all(), [
             'user_id' => 'required',
             'makanan_suka' => 'nullable|array',
@@ -25,24 +21,27 @@ class PreferenceController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Format preferensi tidak valid gess',
+                'message' => 'Format preferensi tidak valid',
                 'errors' => $validator->errors()
             ], 422);
         }
 
         try {
-            // Mengubah array dari Flutter menjadi JSON string (Sangat aman untuk tipe longtextutf8mb4_bin)
-            $sukaJson = $request->has('makanan_suka') ? json_encode($request->makanan_suka) : json_encode([]);
-            $alergiJson = $request->has('alergi_makanan') ? json_encode($request->alergi_makanan) : json_encode([]);
+            $sukaJson = $request->has('makanan_suka')
+                ? json_encode($request->makanan_suka)
+                : json_encode([]);
 
-            // NAMA TABEL SUDAH DISESUAIKAN DENGAN DATABASE KAMU GESS!
-            $namaTabel = 'user_preferences'; 
+            $alergiJson = $request->has('alergi_makanan')
+                ? json_encode($request->alergi_makanan)
+                : json_encode([]);
 
-            // Cek apakah user_id ini sudah pernah ada datanya
-            $cekData = DB::table($namaTabel)->where('user_id', $request->user_id)->first();
+            $namaTabel = 'user_preferences';
+
+            $cekData = DB::table($namaTabel)
+                ->where('user_id', $request->user_id)
+                ->first();
 
             if ($cekData) {
-                // Jika sudah ada, lakukan UPDATE
                 DB::table($namaTabel)
                     ->where('user_id', $request->user_id)
                     ->update([
@@ -50,9 +49,9 @@ class PreferenceController extends Controller
                         'alergi_makanan' => $alergiJson,
                         'updated_at' => Carbon::now(),
                     ]);
-                $pesan = 'Preferensi berhasil diperbarui gess!';
+
+                $pesan = 'Preferensi berhasil diperbarui';
             } else {
-                // Jika belum ada, lakukan INSERT data baru
                 DB::table($namaTabel)->insert([
                     'user_id' => $request->user_id,
                     'makanan_suka' => $sukaJson,
@@ -60,8 +59,16 @@ class PreferenceController extends Controller
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                 ]);
-                $pesan = 'Preferensi baru berhasil disimpan gess!';
+
+                $pesan = 'Preferensi baru berhasil disimpan';
             }
+
+            DB::table('users')
+                ->where('id', $request->user_id)
+                ->update([
+                    'is_personalized' => 1,
+                    'updated_at' => Carbon::now(),
+                ]);
 
             return response()->json([
                 'success' => true,
@@ -69,7 +76,8 @@ class PreferenceController extends Controller
                 'data' => [
                     'user_id' => $request->user_id,
                     'makanan_suka' => $sukaJson,
-                    'alergi_makanan' => $alergiJson
+                    'alergi_makanan' => $alergiJson,
+                    'is_personalized' => 1,
                 ]
             ], 200);
 
@@ -81,21 +89,19 @@ class PreferenceController extends Controller
         }
     }
 
-    // --------------------------------------------------------
-    // 2. GET: AMBIL DATA PREFERENSI
-    // --------------------------------------------------------
     public function getPreference($userId)
     {
         try {
-            // NAMA TABEL SUDAH DISESUAIKAN DENGAN DATABASE KAMU GESS!
-            $namaTabel = 'user_preferences'; 
+            $namaTabel = 'user_preferences';
 
-            $preference = DB::table($namaTabel)->where('user_id', $userId)->first();
+            $preference = DB::table($namaTabel)
+                ->where('user_id', $userId)
+                ->first();
 
             if (!$preference) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Preferensi user belum diatur gess',
+                    'message' => 'Preferensi user belum diatur',
                     'makanan_suka' => '[]',
                     'alergi_makanan' => '[]'
                 ], 200);
