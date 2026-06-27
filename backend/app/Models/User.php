@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -22,6 +21,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'tanggal_lahir',
+        'gender',
+        'is_profile_completed', 
+        'tinggi_badan', // UPDATED: Diizinkan untuk mass assignment
+        'berat_badan',  // UPDATED: Diizinkan untuk mass assignment
+        'gula_darah',   // UPDATED: Diizinkan untuk mass assignment
     ];
 
     /**

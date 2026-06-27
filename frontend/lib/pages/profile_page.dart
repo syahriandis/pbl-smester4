@@ -30,6 +30,8 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController nama, email, tanggalLahir, umur, gender;
   final berat = TextEditingController();
   final tinggi = TextEditingController();
+  final gulaDarah = TextEditingController(); 
+  final alergi = TextEditingController();    
   bool isEdit = false;
   bool isLoading = false;
 
@@ -46,6 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
     loadProfile();
   }
 
+  /* Fungsi untuk mengambil data profil dari server */
   Future<void> loadProfile() async {
     try {
       final res = await http.get(Uri.parse("$baseUrl/api/user/${widget.id}"));
@@ -54,6 +57,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (data["success"] == true) {
         final user = data["user"];
+        
+        if (!mounted) return;
+
         setState(() {
           nama.text = user["nama"] ?? widget.nama;
           email.text = user["email"] ?? widget.email;
@@ -62,10 +68,13 @@ class _ProfilePageState extends State<ProfilePage> {
           gender.text = user["gender"] ?? widget.gender;
           berat.text = user["berat_badan"]?.toString() ?? "";
           tinggi.text = user["tinggi_badan"]?.toString() ?? "";
+          gulaDarah.text = user["gula_darah"]?.toString() ?? ""; 
+          alergi.text = user["alergi"] ?? "";                     
 
           if (berat.text.trim().isEmpty || tinggi.text.trim().isEmpty) {
             isEdit = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("Silakan lengkapi data berat dan tinggi badan Anda."), 
@@ -81,11 +90,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Fungsi pilih foto (Placeholder untuk implementasi ImagePicker nanti)
+  /* Fungsi untuk menampilkan opsi sumber foto profil */
   void _pilihFoto() {
     if (!isEdit) return;
     
-    // Tampilkan opsi bottom sheet ganti foto
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -96,7 +104,6 @@ class _ProfilePageState extends State<ProfilePage> {
               title: const Text('Pilih dari Galeri'),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Panggil fungsi ImagePicker dari galeri di sini
               },
             ),
             ListTile(
@@ -104,7 +111,6 @@ class _ProfilePageState extends State<ProfilePage> {
               title: const Text('Ambil Foto dari Kamera'),
               onTap: () {
                 Navigator.of(context).pop();
-                // TODO: Panggil fungsi ImagePicker dari kamera di sini
               },
             ),
           ],
@@ -113,10 +119,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  /* Fungsi untuk mengirim pembaruan data profil ke server */
   Future<void> saveProfile() async {
-    if (nama.text.trim().isEmpty || berat.text.trim().isEmpty || tinggi.text.trim().isEmpty) {
+    if (nama.text.trim().isEmpty || berat.text.trim().isEmpty || tinggi.text.trim().isEmpty || gulaDarah.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nama, berat, dan tinggi badan wajib diisi!"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Nama, berat, tinggi badan, dan gula darah wajib diisi!"), backgroundColor: Colors.red),
       );
       return;
     }
@@ -127,20 +134,26 @@ class _ProfilePageState extends State<ProfilePage> {
         Uri.parse("$baseUrl/api/profile/update/${widget.id}"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "nama": nama.text.trim(), // SEKARANG NAMA IKUT DIKIRIM KE BACKEND
+          "nama": nama.text.trim(),
           "berat_badan": berat.text.trim(), 
-          "tinggi_badan": tinggi.text.trim()
+          "tinggi_badan": tinggi.text.trim(),
+          "gula_darah": gulaDarah.text.trim(), 
+          "alergi": alergi.text.trim()         
         }),
       );
 
       final data = jsonDecode(res.body);
       setState(() => isLoading = false);
 
+      if (!mounted) return;
+
       if (data["success"] == true) {
         setState(() {
           isEdit = false;
           if (data["user"] != null) {
             umur.text = data["user"]["umur"]?.toString() ?? umur.text;
+            gulaDarah.text = data["user"]["gula_darah"]?.toString() ?? gulaDarah.text;
+            alergi.text = data["user"]["alergi"] ?? alergi.text;
           }
         });
         ScaffoldMessenger.of(context).showSnackBar(
@@ -151,6 +164,8 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       setState(() => isLoading = false);
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error koneksi: $e")));
     }
   }
@@ -169,7 +184,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   const SizedBox(height: 20),
 
-                  // BAGIAN EDIT FOTO (Menggunakan Stack & GestureDetector)
                   GestureDetector(
                     onTap: _pilihFoto,
                     child: Stack(
@@ -195,7 +209,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   const SizedBox(height: 12),
 
-                  // BAGIAN EDIT NAMA (Menggunakan widget ProfileField kustom)
                   ProfileField(
                     label: "Nama", 
                     controller: nama, 
@@ -210,7 +223,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   const SizedBox(height: 25),
 
-                  // Box Detail Profil
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
@@ -238,13 +250,26 @@ class _ProfilePageState extends State<ProfilePage> {
                           editable: isEdit, 
                           keyboardType: TextInputType.number
                         ),
+
+                        const Divider(height: 24, thickness: 1, color: Colors.black12),
+
+                        ProfileField(
+                          label: "Gula Darah (mg/dL)", 
+                          controller: gulaDarah, 
+                          editable: isEdit, 
+                          keyboardType: TextInputType.number
+                        ),
+                        ProfileField(
+                          label: "Alergi Makanan", 
+                          controller: alergi, 
+                          editable: isEdit,
+                        ),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 30),
 
-                  // Tombol Aksi
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isEdit ? Colors.orange : Colors.green,

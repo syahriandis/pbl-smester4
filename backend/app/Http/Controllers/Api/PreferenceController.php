@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 class PreferenceController extends Controller
 {
     public function savePreference(Request $request)
     {
+<<<<<<< Updated upstream
         $validator = Validator::make($request->all(), [
             'user_id' => 'required',
             'makanan_suka' => 'nullable|array',
@@ -119,5 +119,35 @@ class PreferenceController extends Controller
                 'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
             ], 500);
         }
+=======
+        $userId = $request->input('user_id');
+        
+        // Ambil data dengan nama kunci 'suka' dan 'alergi'
+        $sukaData = $request->input('suka', []);
+        $alergiData = $request->input('alergi', []);
+
+        $exists = DB::table('user_preferences')->where('user_id', $userId)->exists();
+
+        if ($exists) {
+            DB::table('user_preferences')->where('user_id', $userId)->update([
+                'makanan_suka' => json_encode($sukaData),
+                'alergi_makanan' => json_encode($alergiData),
+                'updated_at' => Carbon::now(),
+            ]);
+        } else {
+            DB::table('user_preferences')->insert([
+                'user_id' => $userId,
+                'makanan_suka' => json_encode($sukaData),
+                'alergi_makanan' => json_encode($alergiData),
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ]);
+        }
+
+        // Tandai user profil sudah lengkap
+        DB::table('users')->where('id', $userId)->update(['is_profile_completed' => 1]);
+
+        return response()->json(['success' => true, 'message' => 'Data tersimpan!']);
+>>>>>>> Stashed changes
     }
 }

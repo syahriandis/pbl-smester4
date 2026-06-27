@@ -63,7 +63,10 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> livePages = [
-      const MenuPage(),
+      MenuPage(
+        idUser: widget.idUser,
+        nama: widget.nama,
+      ),
       FoodPage(
         riwayat: riwayat,
         onTambah: tambahRiwayat,

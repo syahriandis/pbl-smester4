@@ -36,11 +36,6 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     {"name": "Kacang Tanah", "icon": Icons.gavel, "terpilih": false},
     {"name": "Gandum / Gluten", "icon": Icons.bakery_dining, "terpilih": false},
     {"name": "Telur", "icon": Icons.egg, "terpilih": false},
-    {
-      "name": "Suku Sapi (Laktosa)",
-      "icon": Icons.water_drop,
-      "terpilih": false
-    },
     {"name": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
   ];
 
@@ -49,11 +44,16 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     try {
       final String fullUrl = "$baseUrl/api/save-preference";
       debugPrint("Menghubungi API Preferensi ke: $fullUrl");
+<<<<<<< Updated upstream
 
       // Konflik Berhasil Digabung Di Sini Gess! Tanda <<<<<< dan ====== sudah hilang
       debugPrint(
           "Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
 
+=======
+      
+      // Bagian ini yang dibenerin biar kuncinya 'suka' dan 'alergi'
+>>>>>>> Stashed changes
       final response = await http
           .post(
             Uri.parse(fullUrl),
@@ -63,8 +63,8 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             },
             body: jsonEncode({
               "user_id": widget.dataUser["id"],
-              "makanan_suka": suka,
-              "alergi_makanan": alergi,
+              "suka": suka, 
+              "alergi": alergi,
             }),
           )
           .timeout(const Duration(seconds: 10));

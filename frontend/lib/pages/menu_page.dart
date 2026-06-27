@@ -5,7 +5,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../color.dart';
 
 class MenuPage extends StatefulWidget {
-  const MenuPage({super.key});
+  final int idUser;
+  final String nama;
+
+  const MenuPage({
+    super.key,
+    required this.idUser,
+    required this.nama,
+  });
 
   @override
   State<MenuPage> createState() => _MenuPageState();
@@ -13,7 +20,6 @@ class MenuPage extends StatefulWidget {
 
 class _MenuPageState extends State<MenuPage> {
   final Map<String, dynamic> menuData = {};
-
   List<dynamic> menu = [];
   bool isLoading = true;
 

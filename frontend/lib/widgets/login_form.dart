@@ -37,7 +37,7 @@ class _LoginFormState extends State<LoginForm> {
       return;
     }
 
-    // 2. ✔ VALIDASI REGEX KHUSUS GMAIL (Tameng penolak email palsu saat Login)
+    // 2. VALIDASI REGEX KHUSUS GMAIL
     final gmailRegex = RegExp(r"^[a-zA-Z0-9.]+@gmail\.com$");
     if (!gmailRegex.hasMatch(widget.email.text.trim())) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +46,7 @@ class _LoginFormState extends State<LoginForm> {
           backgroundColor: Colors.orangeAccent,
         ),
       );
-      return; // Stop proses login
+      return;
     }
 
     setState(() => isLoading = true);
@@ -65,6 +65,7 @@ class _LoginFormState extends State<LoginForm> {
       setState(() => isLoading = false);
 
       if (data["success"] == true) {
+        // Kirim data user ke LoginPage lewat callback
         widget.onLoginSuccess(data["user"]);
       } else {
         if (!mounted) return;
@@ -117,7 +118,7 @@ class _LoginFormState extends State<LoginForm> {
           // EMAIL
           TextField(
             controller: widget.email,
-            keyboardType: TextInputType.emailAddress, // Menampilkan keyboard khusus email di HP
+            keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               hintText: "Email",
               prefixIcon: const Icon(Icons.email),
