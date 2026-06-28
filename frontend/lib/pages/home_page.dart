@@ -63,9 +63,11 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> livePages = [
+      // PERBAIKAN: Menambahkan parameter gulaDarah yang diwajibkan oleh MenuPage
       MenuPage(
         idUser: widget.idUser,
         nama: widget.nama,
+        gulaDarah: 120.0, // <-- Nilai default ditambahkan di sini agar error hilang
       ),
       FoodPage(
         riwayat: riwayat,

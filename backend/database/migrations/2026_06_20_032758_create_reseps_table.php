@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('reseps', function (Blueprint $table) {
-            $table->id(); // Ini otomatis Integer PRIMARY KEY AUTO_INCREMENT gess
-            $table->string('nama'); // Menyimpan nama masakan resep
-            $table->string('gambar'); // Menyimpan path/url gambar masakan
-            $table->text('komposisi'); // Detail takaran bahan masakan
-            $table->text('cara'); // Langkah-langkah cara memasak
-            $table->timestamps(); // Otomatis membuat kolom created_at dan updated_at
-        });
+        // Cek dulu apakah tabel sudah ada di database agar tidak error
+        if (!Schema::hasTable('reseps')) {
+            Schema::create('reseps', function (Blueprint $table) {
+                $table->id(); // Ini otomatis Integer PRIMARY KEY AUTO_INCREMENT gess
+                $table->string('nama'); // Menyimpan nama masakan resep
+                $table->string('gambar'); // Menyimpan path/url gambar masakan
+                $table->text('komposisi'); // Detail takaran bahan masakan
+                $table->text('cara'); // Langkah-langkah cara memasak
+                $table->timestamps(); // Otomatis membuat kolom created_at dan updated_at
+            });
+        }
     }
 
     /**

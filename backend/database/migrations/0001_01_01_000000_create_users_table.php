@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('tanggal_lahir');
             $table->string('gender');
             $table->boolean('is_profile_completed')->default(false);
+            $table->boolean('is_personalized')->default(false); // <--- Sekarang sudah digabung di sini gess
             
             // Field opsional / nullable yang nanti dilengkapi di halaman profil
             $table->integer('tinggi_badan')->nullable();
@@ -41,4 +42,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('users');
     }
-};
+};  

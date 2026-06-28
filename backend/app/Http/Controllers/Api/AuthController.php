@@ -54,14 +54,11 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'nama' => $user->name,
                     'email' => $user->email,
-<<<<<<< Updated upstream
                     'tanggal_lahir' => $user->tanggal_lahir,
                     'gender' => $user->gender,
                     'umur' => Carbon::parse($user->tanggal_lahir)->age,
                     'is_personalized' => $user->is_personalized,
-=======
                     'is_profile_completed' => (bool)$user->is_profile_completed,
->>>>>>> Stashed changes
                 ]
             ], 201);
 
@@ -103,12 +100,9 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'tanggal_lahir' => $user->tanggal_lahir,
                     'gender' => $user->gender,
-<<<<<<< Updated upstream
                     'umur' => Carbon::parse($user->password ? $user->tanggal_lahir : Carbon::now())->age,
                     'is_personalized' => $user->is_personalized,
-=======
                     'is_profile_completed' => (bool)$user->is_profile_completed, // Dikirim balik berupa true/false asli
->>>>>>> Stashed changes
                 ]
             ], 200);
 

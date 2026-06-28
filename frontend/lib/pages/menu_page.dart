@@ -7,11 +7,13 @@ import '../color.dart';
 class MenuPage extends StatefulWidget {
   final int idUser;
   final String nama;
+  final double gulaDarah; 
 
   const MenuPage({
     super.key,
     required this.idUser,
     required this.nama,
+    required this.gulaDarah, 
   });
 
   @override
@@ -19,55 +21,201 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage> {
-  final Map<String, dynamic> menuData = {};
-  List<dynamic> menu = [];
-  bool isLoading = true;
+  List<dynamic> menuSarapan = [];
+  List<dynamic> menuSiang = [];
+  List<dynamic> menuMalam = [];
+  List<dynamic> menuCemilan = [];
+  List<dynamic> menuMinuman = [];
 
+  bool isLoading = true;
   final String apiKey = "0a15aa99961b4273b52d6a443bf551be";
 
   @override
   void initState() {
     super.initState();
-    fetchMenu();
+    fetchAllMenus(); 
   }
 
-  Future<void> fetchMenu() async {
+  Future<void> fetchAllMenus() async {
+    setState(() => isLoading = true);
+
+    String kriteriaNutrisi = "";
+    if (widget.gulaDarah > 140) {
+      kriteriaNutrisi = "&maxCarbs=30&maxSugar=5&diet=low-carb";
+    } else if (widget.gulaDarah < 70) {
+      kriteriaNutrisi = "&minCarbs=20&maxCarbs=60";
+    } else {
+      kriteriaNutrisi = "&maxCarbs=50&diet=healthy";
+    }
+
     try {
-      final response = await http.get(Uri.parse(
-          'https://api.spoonacular.com/recipes/complexSearch?apiKey=$apiKey&number=6&diet=low-carb'));
+      await Future.wait([
+        _getMenuByCategory("breakfast", kriteriaNutrisi).then((data) => menuSarapan = data),
+        _getMenuByCategory("lunch", kriteriaNutrisi).then((data) => menuSiang = data),
+        _getMenuByCategory("main course", kriteriaNutrisi).then((data) => menuMalam = data),
+        _getMenuByCategory("snack", kriteriaNutrisi).then((data) => menuCemilan = data),
+        _getMenuByCategory("beverage", kriteriaNutrisi).then((data) => menuMinuman = data),
+      ]);
 
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  Future<List<dynamic>> _getMenuByCategory(String type, String nutrisi) async {
+    final url = 'https://api.spoonacular.com/recipes/complexSearch?apiKey=$apiKey&number=4&type=$type$nutrisi';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      List temp = data['results'] ?? [];
+      List results = data['results'] ?? [];
 
-      for (var item in temp) {
-        final res = await http.get(Uri.parse(
+      for (var item in results) {
+        final resNutri = await http.get(Uri.parse(
             'https://api.spoonacular.com/recipes/${item['id']}/nutritionWidget.json?apiKey=$apiKey'));
-
-        if (res.statusCode == 200) {
-          final nutri = jsonDecode(res.body);
+        if (resNutri.statusCode == 200) {
+          final nutri = jsonDecode(resNutri.body);
           item['calories'] = nutri['calories'];
           item['carbs'] = nutri['carbs'];
           item['protein'] = nutri['protein'];
         }
       }
+      return results;
+    }
+    return [];
+  }
 
-      setState(() {
-        menu = temp;
-        isLoading = false;
-      });
+  String _bypasCorsUrl(String originalUrl) {
+    String securedUrl = originalUrl.replaceAll("http://", "https://");
+    return "https://cors-anywhere.herokuapp.com/$securedUrl";
+  }
+
+  Widget _buildCategorySection(String title, IconData icon, Color color, List<dynamic> data) {
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: color.withAlpha(25),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: data.length,
+            itemBuilder: (context, index) {
+              final item = data[index];
+              return GestureDetector(
+                onTap: () => showDetail(context, item),
+                child: Container(
+                  width: 150,
+                  margin: const EdgeInsets.only(right: 12, bottom: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(12),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: CachedNetworkImage(
+                          imageUrl: _bypasCorsUrl(item["image"].toString()),
+                          height: 100,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(color: Colors.grey[100]),
+                          errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item["title"] ?? "",
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.2),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              item["calories"] != null ? "${item["calories"]}" : "Nutrisi siap",
+                              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pilihDanUpdateGulaDarah(String menuTitle) async {
+    int nilaiGulaBaru = widget.gulaDarah.toInt() + (widget.gulaDarah < 70 ? 25 : 15);
+    final tanggalHariIni = DateTime.now().toIso8601String().split("T")[0];
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://127.0.0.1:8000/api/gula-darah"),
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          "id_user": widget.idUser,
+          "tanggal": tanggalHariIni,
+          "waktu": "Setelah Makan",
+          "nilai_gula": nilaiGulaBaru,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("✅ Gula darah berhasil di-update dari pilihan menu.");
+      }
     } catch (e) {
-      setState(() => isLoading = false);
+      debugPrint("Gagal update otomatis dari menu: $e");
     }
   }
 
   void showDetail(BuildContext context, dynamic item) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: EdgeInsets.zero,
         content: SingleChildScrollView(
           child: Column(
@@ -78,14 +226,12 @@ class _MenuPageState extends State<MenuPage> {
                   SizedBox(
                     height: 200,
                     width: double.infinity,
-                    child: item["image"] != null
-                        ? CachedNetworkImage(
-                            imageUrl: item["image"].toString().replaceAll("http://", "https://"),
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(color: Colors.grey[200]),
-                            errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
-                          )
-                        : Image.asset(item["gambar"] ?? "", fit: BoxFit.cover),
+                    child: CachedNetworkImage(
+                      imageUrl: _bypasCorsUrl(item["image"].toString()),
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: Colors.grey[200]),
+                      errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 40),
+                    ),
                   ),
                   Positioned(
                     top: 12,
@@ -94,7 +240,7 @@ class _MenuPageState extends State<MenuPage> {
                       backgroundColor: const Color.fromARGB(128, 0, 0, 0),
                       child: IconButton(
                         icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(dialogContext),
                       ),
                     ),
                   ),
@@ -106,35 +252,60 @@ class _MenuPageState extends State<MenuPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item["nama"] ?? item["title"] ?? "",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        letterSpacing: 0.5,
-                      ),
+                      item["title"] ?? "Menu Sehat",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     ),
                     const SizedBox(height: 16),
                     const Divider(),
-                    const SizedBox(height: 12),
                     if (item["calories"] != null) ...[
                       const Text(
-                        "Kandungan Nutrisi",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
+                        "Kandungan Nutrisi Sesuai Porsi",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildNutrientBadge("🔥 Kalori", item["calories"], Colors.orange[50]!, Colors.orange[800]!),
-                          _buildNutrientBadge("🍞 Karbo", item["carbs"], Colors.amber[50]!, Colors.amber[800]!),
-                          _buildNutrientBadge("💪 Protein", item["protein"], Colors.red[50]!, Colors.red[800]!),
+                          _buildNutrientBadge("🍞 Karbo", item["carbs"] ?? "-", Colors.amber[50]!, Colors.amber[800]!),
+                          _buildNutrientBadge("💪 Protein", item["protein"] ?? "-", Colors.red[50]!, Colors.red[800]!),
                         ],
                       ),
-                    ] else ...[
-                      _buildDetailRow("Komposisi", item["komposisi"]),
-                      _buildDetailRow("Takaran", item["takaran"]),
-                      _buildDetailRow("Resep", item["resep"]),
                     ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 45,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.check_circle, color: Colors.white),
+                        label: const Text("Pilih & Konsumsi Menu Ini", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          Navigator.pop(dialogContext);
+                          
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (_) => const Center(child: CircularProgressIndicator()),
+                          );
+
+                          await _pilihDanUpdateGulaDarah(item["title"] ?? "Menu");
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Berhasil memilih ${item['title']}. Data grafik gula darah Anda telah diperbarui!"),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -147,110 +318,15 @@ class _MenuPageState extends State<MenuPage> {
 
   Widget _buildNutrientBadge(String label, String value, Color bgColor, Color textColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
       child: Column(
         children: [
           Text(label, style: TextStyle(fontSize: 11, color: textColor, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 13, color: textColor, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.bold)),
         ],
       ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Colors.black87, fontSize: 14),
-          children: [
-            TextSpan(text: "$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
-            TextSpan(text: value ?? "-"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildCard(BuildContext context, Map item, Color warna) {
-    return GestureDetector(
-      onTap: () => showDetail(context, item),
-      child: Container(
-        width: 160,
-        margin: const EdgeInsets.only(right: 14, bottom: 4),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: const Color.fromARGB(10, 0, 0, 0),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: Image.asset(
-                item["gambar"],
-                height: 110,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Text(
-                item["nama"] ?? "",
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildSection(String title, Map section) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColor.primaryLight.withValues(alpha: 0.2),
-              child: Icon(section["icon"], color: AppColor.primaryLight, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 180,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            children: (section["data"] as List)
-                .map((item) => buildCard(context, item, section["warna"]))
-                .toList(),
-          ),
-        ),
-      ],
     );
   }
 
@@ -259,110 +335,27 @@ class _MenuPageState extends State<MenuPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("Menu Sehat", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Rekomendasi Menu ${widget.nama}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (menuData.isNotEmpty) ...[
-              ...menuData.entries.map((e) => buildSection(e.key, e.value)),
-              const SizedBox(height: 24),
-            ],
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.green[50],
-                  child: Icon(Icons.cloud_download, color: Colors.green[700], size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  "Rekomendasi Low-Carb (API)",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: menu.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: 0.78,
-                ),
-                itemBuilder: (_, i) {
-                  final item = menu[i];
-
-                  return GestureDetector(
-                    onTap: () => showDetail(context, item),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color.fromARGB(10, 0, 0, 0),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ClipRRect(
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                                child: CachedNetworkImage(
-                                  imageUrl: item["image"].toString().replaceAll("http://", "https://"),
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, __) => Container(color: Colors.grey[100]),
-                                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Text(
-                              item["title"] ?? "",
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                height: 1.2,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCategorySection("Sarapan Sehat", Icons.wb_sunny, Colors.amber.shade700, menuSarapan),
+                  _buildCategorySection("Makan Siang", Icons.light_mode, Colors.orange.shade700, menuSiang),
+                  _buildCategorySection("Makan Malam", Icons.nightlight_round, Colors.indigo.shade700, menuMalam),
+                  _buildCategorySection("Cemilan Sehat", Icons.cookie, Colors.brown.shade600, menuCemilan),
+                  _buildCategorySection("Minuman Segar", Icons.local_cafe, Colors.teal.shade700, menuMinuman),
+                ],
               ),
-          ],
-        ),
-      ),
+            ),
     );
   }
 }

@@ -10,13 +10,20 @@ use Carbon\Carbon;
 
 class ProfileController extends Controller
 {
-    // LOAD PROFILE (GABUNGAN DATA USER & ALERGI)
+    /**
+     * LOAD PROFILE
+     * Fungsi ini otomatis membaca data yang diisi dari Onboarding
+     */
     public function loadProfile(int $id)
     {
         $user = DB::table('users')
             ->leftJoin('user_preferences', 'users.id', '=', 'user_preferences.user_id')
             ->where('users.id', $id)
-            ->select('users.*', 'user_preferences.alergi_makanan') // Mengambil kolom alergi_makanan
+            ->select(
+                'users.*',
+                'user_preferences.alergi_makanan',
+                'user_preferences.makanan_suka'
+            )
             ->first();
 
         if (!$user) {
@@ -26,97 +33,160 @@ class ProfileController extends Controller
             ], 404);
         }
 
-        // Mengubah format array JSON database menjadi String siap pakai di Flutter (cth: "Udang, Susu")
-        $alergiArray = json_decode($user->alergi_makanan ?? '[]', true) ?? [];
-        $alergiString = implode(', ', $alergiArray);
+        // --- VALIDASI & DECODE ALERGI DARI ONBOARDING ---
+        $alergiRaw = $user->alergi_makanan;
+        $alergiTampil = "";
+
+        if (!empty($alergiRaw)) {
+            // Jika data dari onboarding tersimpan dalam format JSON string (misal: ["telur", "udang"])
+            if (str_starts_with($alergiRaw, '[') && str_ends_with($alergiRaw, ']')) {
+                $alergiArray = json_decode($alergiRaw, true) ?? [];
+                $alergiTampil = implode(", ", $alergiArray);
+            } else {
+                // Jika dari onboarding tersimpan sebagai string biasa/mentah (Blok teks atau dipisah koma)
+                $alergiTampil = $alergiRaw;
+            }
+        }
+
+        $makanan = json_decode($user->makanan_suka ?? '[]', true) ?? [];
 
         return response()->json([
             'success' => true,
             'user' => [
                 'id' => $user->id,
-                'nama' => $user->name, 
+                'nama' => $user->name,
                 'email' => $user->email,
                 'tanggal_lahir' => $user->tanggal_lahir,
-                'umur' => $user->tanggal_lahir ? Carbon::parse($user->tanggal_lahir)->age : null,
+                'umur' => $user->tanggal_lahir
+                    ? Carbon::parse($user->tanggal_lahir)->age
+                    : null,
                 'gender' => $user->gender,
+
                 'tinggi_badan' => $user->tinggi_badan,
                 'berat_badan' => $user->berat_badan,
-                'gula_darah' => $user->gula_darah, 
-                'alergi' => $alergiString, // Dikirim berupa string teks biasa
+                'gula_darah' => $user->gula_darah,
+
+                'alergi' => $alergiTampil, // Menampilkan data alergi onboarding secara otomatis
+                'makanan_suka' => $makanan,
+
+                'is_profile_completed' => $user->is_profile_completed,
             ]
         ]);
     }
 
-    // UPDATE PROFILE
-    public function updateProfile(Request $request, int $id) 
+    /**
+     * UPDATE PROFILE
+     * Digunakan untuk update data dari halaman Profile maupun Onboarding
+     */
+    public function updateProfile(Request $request, int $id)
     {
         $validator = Validator::make($request->all(), [
-            'nama' => 'required|string|max:255',       
-            'tinggi_badan' => 'required|integer',
-            'berat_badan' => 'required|integer',
-            'gula_darah' => 'required|integer',        
-            'alergi' => 'nullable|string', // Menerima teks string dari halaman edit profil Flutter
+            'nama' => 'required|string|max:255',
+            'tinggi_badan' => 'required|integer|min:50|max:300',
+            'berat_badan' => 'required|integer|min:10|max:300',
+            'gula_darah' => 'nullable|integer|min:1',
+            'alergi' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first(),
+                'message' => $validator->errors()->first()
             ], 422);
         }
 
+        DB::beginTransaction();
+
         try {
-            // 1. Update data dasar ke tabel users
-            DB::table('users')->where('id', $id)->update([
-                'name' => $request->nama,                  
+            $updateUser = [
+                'name' => $request->nama,
                 'tinggi_badan' => $request->tinggi_badan,
                 'berat_badan' => $request->berat_badan,
-                'gula_darah' => $request->gula_darah,      
                 'updated_at' => now(),
-            ]);
+            ];
 
-            // 2. Mengubah teks string kembali menjadi format array JSON database
-            $alergiString = $request->alergi ?? '';
-            $alergiArray = $alergiString != '' ? array_map('trim', explode(',', $alergiString)) : [];
+            if ($request->filled('gula_darah')) {
+                $updateUser['gula_darah'] = $request->gula_darah;
+            }
+
+            if ($request->tinggi_badan != null && $request->berat_badan != null) {
+                $updateUser['is_profile_completed'] = 1;
+            }
+
+            DB::table('users')
+                ->where('id', $id)
+                ->update($updateUser);
+
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN RIWAYAT GULA DARAH 
+            |--------------------------------------------------------------------------
+            | Jika user menginput/mengubah gula darah (di onboarding / profil), 
+            | data otomatis masuk ke tabel riwayat agar grafik langsung terupdate.
+            */
+            if ($request->filled('gula_darah')) {
+                $last = DB::table('gula_darah')
+                    ->where('id_user', $id)
+                    ->latest('id')
+                    ->first();
+
+                // Cek jika data riwayat terakhir kosong atau nilainya berbeda
+                if (!$last || $last->nilai_gula != $request->gula_darah) {
+                    $jam = now()->format('H:i');
+
+                    // Menentukan slot waktu dinamis berdasarkan jam saat ini
+                    if ($jam < '11:00') {
+                        $waktu = 'Pagi';
+                    } elseif ($jam < '17:00') {
+                        $waktu = 'Siang';
+                    } else {
+                        $waktu = 'Malam';
+                    }
+
+                    DB::table('gula_darah')->insert([
+                        'id_user' => $id,
+                        'tanggal' => now()->toDateString(),
+                        'waktu' => $waktu,
+                        'nilai_gula' => $request->gula_darah,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE ALERGI MAKANAN
+            |--------------------------------------------------------------------------
+            */
+            $alergiString = $request->alergi ?? "";
+            $alergiArray = [];
+
+            if (!empty($alergiString)) {
+                // Mengubah string pisahan koma (misal: "telur, kacang") menjadi array terpisah
+                $alergiArray = array_map('trim', explode(",", $alergiString));
+            }
 
             DB::table('user_preferences')->updateOrInsert(
                 ['user_id' => $id],
                 [
-                    'alergi_makanan' => json_encode($alergiArray), // Disimpan sebagai JSON array gess
-                    'updated_at' => now()
+                    'alergi_makanan' => json_encode($alergiArray),
+                    'updated_at' => now(),
+                    'created_at' => now()
                 ]
             );
 
-            // Ambil data gabungan terbaru untuk respon balik ke Flutter
-            $userUpdated = DB::table('users')
-                ->leftJoin('user_preferences', 'users.id', '=', 'user_preferences.user_id')
-                ->where('users.id', $id)
-                ->select('users.*', 'user_preferences.alergi_makanan')
-                ->first();
+            DB::commit();
 
-            $alergiTerbaru = implode(', ', json_decode($userUpdated->alergi_makanan ?? '[]', true) ?? []);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profil berhasil diperbarui',
-                'user' => [
-                    'id' => $userUpdated->id,
-                    'nama' => $userUpdated->name,
-                    'email' => $userUpdated->email,
-                    'tanggal_lahir' => $userUpdated->tanggal_lahir,
-                    'umur' => $userUpdated->tanggal_lahir ? Carbon::parse($userUpdated->tanggal_lahir)->age : null,
-                    'gender' => $userUpdated->gender,
-                    'tinggi_badan' => $userUpdated->tinggi_badan,
-                    'berat_badan' => $userUpdated->berat_badan,
-                    'gula_darah' => $userUpdated->gula_darah, 
-                    'alergi' => $alergiTerbaru,          
-                ]
-            ]);
+            // Kembalikan profil terbaru setelah berhasil disimpan
+            return $this->loadProfile($id);
 
         } catch (\Exception $e) {
+            DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
             ], 500);
         }
     }

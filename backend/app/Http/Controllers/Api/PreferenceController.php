@@ -5,17 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 class PreferenceController extends Controller
 {
+    /**
+     * Menyimpan atau memperbarui preferensi pengguna.
+     */
     public function savePreference(Request $request)
     {
-<<<<<<< Updated upstream
         $validator = Validator::make($request->all(), [
             'user_id' => 'required',
-            'makanan_suka' => 'nullable|array',
-            'alergi_makanan' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -27,57 +28,72 @@ class PreferenceController extends Controller
         }
 
         try {
-            $sukaJson = $request->has('makanan_suka')
-                ? json_encode($request->makanan_suka)
-                : json_encode([]);
-
-            $alergiJson = $request->has('alergi_makanan')
-                ? json_encode($request->alergi_makanan)
-                : json_encode([]);
-
+            $userId = $request->input('user_id');
             $namaTabel = 'user_preferences';
+            
+            // Ambil data input mentah
+            $sukaRaw = $request->input('suka', $request->input('makanan_suka', []));
+            $alergiRaw = $request->input('alergi', $request->input('alergi_makanan', []));
 
-            $cekData = DB::table($namaTabel)
-                ->where('user_id', $request->user_id)
-                ->first();
-
-            if ($cekData) {
-                DB::table($namaTabel)
-                    ->where('user_id', $request->user_id)
-                    ->update([
-                        'makanan_suka' => $sukaJson,
-                        'alergi_makanan' => $alergiJson,
-                        'updated_at' => Carbon::now(),
-                    ]);
-
-                $pesan = 'Preferensi berhasil diperbarui';
+            // --- PERBAIKAN LOGIKA PROSES DATA SUKA ---
+            $sukaData = [];
+            if (is_string($sukaRaw)) {
+                // Cek jika string berupa JSON array valid
+                if (str_starts_with($sukaRaw, '[') && str_ends_with($sukaRaw, ']')) {
+                    $sukaData = json_decode($sukaRaw, true) ?? [];
+                } elseif (!empty($sukaRaw)) {
+                    // Jika teks biasa, pecah berdasarkan koma (,) atau slash (/)
+                    $sukaData = array_map('trim', preg_split('/[,\/]/', $sukaRaw));
+                }
             } else {
-                DB::table($namaTabel)->insert([
-                    'user_id' => $request->user_id,
+                $sukaData = $sukaRaw;
+            }
+
+            // --- PERBAIKAN LOGIKA PROSES DATA ALERGI ---
+            $alergiData = [];
+            if (is_string($alergiRaw)) {
+                // Cek jika string berupa JSON array valid
+                if (str_starts_with($alergiRaw, '[') && str_ends_with($alergiRaw, ']')) {
+                    $alergiData = json_decode($alergiRaw, true) ?? [];
+                } elseif (!empty($alergiRaw)) {
+                    // Jika teks biasa (contoh: "Seafood / Udang"), pecah jadi array
+                    $alergiData = array_map('trim', preg_split('/[,\/]/', $alergiRaw));
+                }
+            } else {
+                $alergiData = $alergiRaw;
+            }
+
+            // Amankan ke format JSON string untuk disimpan ke database
+            $sukaJson = json_encode($sukaData ?? []);
+            $alergiJson = json_encode($alergiData ?? []);
+
+            // Menggunakan updateOrInsert agar kode lebih ringkas & cepat gess
+            DB::table($namaTabel)->updateOrInsert(
+                ['user_id' => $userId],
+                [
                     'makanan_suka' => $sukaJson,
                     'alergi_makanan' => $alergiJson,
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
-                ]);
+                ]
+            );
 
-                $pesan = 'Preferensi baru berhasil disimpan';
-            }
-
+            // Update status flag di tabel users sekalian
             DB::table('users')
-                ->where('id', $request->user_id)
+                ->where('id', $userId)
                 ->update([
                     'is_personalized' => 1,
+                    'is_profile_completed' => 1,
                     'updated_at' => Carbon::now(),
                 ]);
 
             return response()->json([
                 'success' => true,
-                'message' => $pesan,
+                'message' => 'Preferensi berhasil disimpan gess!',
                 'data' => [
-                    'user_id' => $request->user_id,
-                    'makanan_suka' => $sukaJson,
-                    'alergi_makanan' => $alergiJson,
-                    'is_personalized' => 1,
+                    'user_id' => $userId,
+                    'makanan_suka' => $sukaData,
+                    'alergi_makanan' => $alergiData
                 ]
             ], 200);
 
@@ -89,7 +105,10 @@ class PreferenceController extends Controller
         }
     }
 
-    public function getPreference($userId)
+    /**
+     * Mendapatkan preferensi pengguna.
+     */
+    public function getPreference(int $userId)
     {
         try {
             $namaTabel = 'user_preferences';
@@ -102,15 +121,16 @@ class PreferenceController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Preferensi user belum diatur',
-                    'makanan_suka' => '[]',
-                    'alergi_makanan' => '[]'
+                    'makanan_suka' => [],
+                    'alergi_makanan' => []
                 ], 200);
             }
 
+            // Kembalikan dalam bentuk Array asli (sudah didecode dari JSON database)
             return response()->json([
                 'success' => true,
-                'makanan_suka' => $preference->makanan_suka ?? '[]',
-                'alergi_makanan' => $preference->alergi_makanan ?? '[]'
+                'makanan_suka' => json_decode($preference->makanan_suka ?? '[]', true),
+                'alergi_makanan' => json_decode($preference->alergi_makanan ?? '[]', true)
             ], 200);
 
         } catch (\Exception $e) {
@@ -119,35 +139,5 @@ class PreferenceController extends Controller
                 'message' => 'Terjadi kesalahan server: ' . $e->getMessage()
             ], 500);
         }
-=======
-        $userId = $request->input('user_id');
-        
-        // Ambil data dengan nama kunci 'suka' dan 'alergi'
-        $sukaData = $request->input('suka', []);
-        $alergiData = $request->input('alergi', []);
-
-        $exists = DB::table('user_preferences')->where('user_id', $userId)->exists();
-
-        if ($exists) {
-            DB::table('user_preferences')->where('user_id', $userId)->update([
-                'makanan_suka' => json_encode($sukaData),
-                'alergi_makanan' => json_encode($alergiData),
-                'updated_at' => Carbon::now(),
-            ]);
-        } else {
-            DB::table('user_preferences')->insert([
-                'user_id' => $userId,
-                'makanan_suka' => json_encode($sukaData),
-                'alergi_makanan' => json_encode($alergiData),
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
-            ]);
-        }
-
-        // Tandai user profil sudah lengkap
-        DB::table('users')->where('id', $userId)->update(['is_profile_completed' => 1]);
-
-        return response()->json(['success' => true, 'message' => 'Data tersimpan!']);
->>>>>>> Stashed changes
     }
 }

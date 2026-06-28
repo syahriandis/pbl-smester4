@@ -48,7 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
     loadProfile();
   }
 
-  /* Fungsi untuk mengambil data profil dari server */
   Future<void> loadProfile() async {
     try {
       final res = await http.get(Uri.parse("$baseUrl/api/user/${widget.id}"));
@@ -69,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
           berat.text = user["berat_badan"]?.toString() ?? "";
           tinggi.text = user["tinggi_badan"]?.toString() ?? "";
           gulaDarah.text = user["gula_darah"]?.toString() ?? ""; 
-          alergi.text = user["alergi"] ?? "";                     
+          alergi.text = user["alergi"] ?? ""; // Otomatis terisi dari Onboarding halaman_pilihan
 
           if (berat.text.trim().isEmpty || tinggi.text.trim().isEmpty) {
             isEdit = true;
@@ -90,7 +89,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  /* Fungsi untuk menampilkan opsi sumber foto profil */
   void _pilihFoto() {
     if (!isEdit) return;
     
@@ -102,16 +100,12 @@ class _ProfilePageState extends State<ProfilePage> {
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text('Pilih dari Galeri'),
-              onTap: () {
-                Navigator.of(context).pop();
-              },
+              onTap: () => Navigator.of(context).pop(),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Ambil Foto dari Kamera'),
-              onTap: () {
-                Navigator.of(context).pop();
-              },
+              onTap: () => Navigator.of(context).pop(),
             ),
           ],
         ),
@@ -119,7 +113,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /* Fungsi untuk mengirim pembaruan data profil ke server */
   Future<void> saveProfile() async {
     if (nama.text.trim().isEmpty || berat.text.trim().isEmpty || tinggi.text.trim().isEmpty || gulaDarah.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,6 +123,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() => isLoading = true);
     try {
+      // 1. Update data profile utama
       final res = await http.post(
         Uri.parse("$baseUrl/api/profile/update/${widget.id}"),
         headers: {"Content-Type": "application/json"},
@@ -143,11 +137,29 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       final data = jsonDecode(res.body);
-      setState(() => isLoading = false);
-
-      if (!mounted) return;
 
       if (data["success"] == true) {
+        // 2. PERBAIKAN: Otomatis kirim data gula darah ke riwayat ChartPage agar chart ter-update otomatis
+        try {
+          final tanggalHariIni = DateTime.now().toIso8601String().split("T")[0];
+          await http.post(
+            Uri.parse("$baseUrl/api/gula-darah"), // Endpoint simpan data gula darah chart
+            headers: {
+              "Content-Type": "application/json; charset=UTF-8",
+              "Accept": "application/json",
+            },
+            body: jsonEncode({
+              "id_user": widget.id,
+              "tanggal": tanggalHariIni,
+              "waktu": "Pagi", // Atur default waktu pemeriksaan awal
+              "nilai_gula": int.tryParse(gulaDarah.text.trim()) ?? 0,
+            }),
+          );
+          debugPrint("✅ Gula darah ter-sinkronisasi ke Chart data.");
+        } catch (chartErr) {
+          debugPrint("Gagal auto-sync ke chart: $chartErr");
+        }
+
         setState(() {
           isEdit = false;
           if (data["user"] != null) {
@@ -156,17 +168,20 @@ class _ProfilePageState extends State<ProfilePage> {
             alergi.text = data["user"]["alergi"] ?? alergi.text;
           }
         });
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profile berhasil diperbarui"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Profile dan Grafik berhasil diperbarui"), backgroundColor: Colors.green),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data["message"] ?? "Gagal update")));
       }
     } catch (e) {
-      setState(() => isLoading = false);
-      
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error koneksi: $e")));
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -183,7 +198,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-
                   GestureDetector(
                     onTap: _pilihFoto,
                     child: Stack(
@@ -206,23 +220,18 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   ProfileField(
                     label: "Nama", 
                     controller: nama, 
                     editable: isEdit, 
                     isRowStyle: false
                   ),
-                  
                   Text(
                     email.text,
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
-
                   const SizedBox(height: 25),
-
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(16),
@@ -250,9 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           editable: isEdit, 
                           keyboardType: TextInputType.number
                         ),
-
                         const Divider(height: 24, thickness: 1, color: Colors.black12),
-
                         ProfileField(
                           label: "Gula Darah (mg/dL)", 
                           controller: gulaDarah, 
@@ -267,9 +274,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isEdit ? Colors.orange : Colors.green,

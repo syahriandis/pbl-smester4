@@ -39,21 +39,14 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     {"name": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
   ];
 
+  // Perbaikan: Menerima alergi sebagai String untuk mempermudah penyimpanan di DB teks
   Future<void> kirimPreferensiKeServer(
-      List<String> suka, List<String> alergi) async {
+      List<String> suka, String alergi) async {
     try {
       final String fullUrl = "$baseUrl/api/save-preference";
       debugPrint("Menghubungi API Preferensi ke: $fullUrl");
-<<<<<<< Updated upstream
+      debugPrint("Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
 
-      // Konflik Berhasil Digabung Di Sini Gess! Tanda <<<<<< dan ====== sudah hilang
-      debugPrint(
-          "Payload dikirim: user_id=${widget.dataUser["id"]}, suka=$suka, alergi=$alergi");
-
-=======
-      
-      // Bagian ini yang dibenerin biar kuncinya 'suka' dan 'alergi'
->>>>>>> Stashed changes
       final response = await http
           .post(
             Uri.parse(fullUrl),
@@ -64,7 +57,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             body: jsonEncode({
               "user_id": widget.dataUser["id"],
               "suka": suka, 
-              "alergi": alergi,
+              "alergi": alergi, // Dikirim sebagai String teks biasa
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -97,7 +90,12 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
         .map((item) => item["name"] as String)
         .toList();
 
-    await kirimPreferensiKeServer(pilihanSuka, pilihanAlergi);
+    // Perbaikan: Ubah Array Alergi menjadi String terpisah koma sebelum dikirim ke server
+    String stringAlergi = pilihanAlergi.contains("Tidak Ada Alergi") || pilihanAlergi.isEmpty
+        ? ""
+        : pilihanAlergi.join(", ");
+
+    await kirimPreferensiKeServer(pilihanSuka, stringAlergi);
 
     if (!mounted) return;
     Navigator.pop(context);
@@ -156,10 +154,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             const SizedBox(height: 25),
             const Text(
               "Jenis makanan apa yang kamu suka?",
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -170,16 +165,13 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
                   label: Text(item["name"]),
                   avatar: Icon(item["icon"],
                       size: 18,
-                      color:
-                          item["terpilih"] ? Colors.white : AppColor.primary),
+                      color: item["terpilih"] ? Colors.white : AppColor.primary),
                   selected: item["terpilih"],
                   selectedColor: AppColor.primary,
                   checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                       color: item["terpilih"] ? Colors.white : Colors.black87,
-                      fontWeight: item["terpilih"]
-                          ? FontWeight.bold
-                          : FontWeight.normal),
+                      fontWeight: item["terpilih"] ? FontWeight.bold : FontWeight.normal),
                   onSelected: (bool terpilih) {
                     setState(() {
                       item["terpilih"] = terpilih;
@@ -193,10 +185,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             const SizedBox(height: 15),
             const Text(
               "Apakah kamu memiliki alergi makanan?",
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -207,28 +196,22 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
                   label: Text(item["name"]),
                   avatar: Icon(item["icon"],
                       size: 18,
-                      color: item["terpilih"]
-                          ? Colors.white
-                          : Colors.red.shade700),
+                      color: item["terpilih"] ? Colors.white : Colors.red.shade700),
                   selected: item["terpilih"],
                   selectedColor: Colors.red.shade600,
                   checkmarkColor: Colors.white,
                   labelStyle: TextStyle(
                       color: item["terpilih"] ? Colors.white : Colors.black87,
-                      fontWeight: item["terpilih"]
-                          ? FontWeight.bold
-                          : FontWeight.normal),
+                      fontWeight: item["terpilih"] ? FontWeight.bold : FontWeight.normal),
                   onSelected: (bool terpilih) {
                     setState(() {
                       if (item["name"] == "Tidak Ada Alergi" && terpilih) {
                         for (var element in daftarAlergiMakanan) {
                           element["terpilih"] = false;
                         }
-                      } else if (item["name"] != "Tidak Ada Alergi" &&
-                          terpilih) {
+                      } else if (item["name"] != "Tidak Ada Alergi" && terpilih) {
                         daftarAlergiMakanan.firstWhere((element) =>
-                            element["name"] ==
-                            "Tidak Ada Alergi")["terpilih"] = false;
+                            element["name"] == "Tidak Ada Alergi")["terpilih"] = false;
                       }
                       item["terpilih"] = terpilih;
                     });
@@ -243,16 +226,12 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: prosesSelesai,
                 child: const Text(
                   "Selesai & Masuk ke Aplikasi",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
