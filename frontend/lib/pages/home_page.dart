@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../color.dart';
 
 import 'menu_page.dart';
@@ -39,6 +42,40 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int index = 0;
   List<Map<String, dynamic>> riwayat = [];
+  
+  // Variabel medis dinamis dari database backend
+  double gulaDarahUser = 0.0; 
+  String alergiUser = ""; 
+  bool isLoadingData = true;
+
+  final String baseUrl = kIsWeb ? "http://localhost:8000" : "http://10.0.2.2:8000";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDataUserTerbaru(); 
+  }
+
+  // Fungsi sinkronisasi data alergi & gula darah dari backend
+  Future<void> fetchDataUserTerbaru() async {
+    try {
+      final res = await http.get(Uri.parse("$baseUrl/api/user/${widget.idUser}"));
+      if (res.body.isNotEmpty) {
+        final data = jsonDecode(res.body);
+        if (data["success"] == true && data["user"] != null) {
+          setState(() {
+            gulaDarahUser = double.tryParse(data["user"]["gula_darah"].toString()) ?? 0.0;
+            alergiUser = data["user"]["alergi"] ?? "";
+            isLoadingData = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Gagal sinkronisasi data medis di HomePage: $e");
+    }
+    setState(() => isLoadingData = false);
+  }
 
   void tambahRiwayat(Map<String, dynamic> item) {
     setState(() {
@@ -63,12 +100,14 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> livePages = [
-      // PERBAIKAN: Menambahkan parameter gulaDarah yang diwajibkan oleh MenuPage
-      MenuPage(
-        idUser: widget.idUser,
-        nama: widget.nama,
-        gulaDarah: 120.0, // <-- Nilai default ditambahkan di sini agar error hilang
-      ),
+      isLoadingData 
+          ? const Center(child: CircularProgressIndicator())
+          : MenuPage(
+              idUser: widget.idUser,
+              nama: widget.nama,
+              gulaDarah: gulaDarahUser, 
+              alergi: alergiUser,       
+            ),
       FoodPage(
         riwayat: riwayat,
         onTambah: tambahRiwayat,
@@ -95,8 +134,9 @@ class HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              // Menunggu halaman profile ditutup, lalu refresh data rekomendasi makanan
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => ProfilePage(
@@ -109,6 +149,7 @@ class HomePageState extends State<HomePage> {
                   ),
                 ),
               );
+              fetchDataUserTerbaru();
             },
           ),
           IconButton(icon: const Icon(Icons.logout), onPressed: logout),

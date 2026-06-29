@@ -12,20 +12,32 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('food_items', function (Blueprint $table) {
+
             $table->id();
-            $table->string('nama'); // Nama makanan atau minuman
-            $table->string('gambar')->nullable(); // Path atau URL gambar (boleh kosong/nullable)
-            $table->string('takaran'); // Contoh: "250 ml", "30 g"
-            $table->enum('kategori', ['minuman', 'snack']); // Menggunakan enum sebagai pemisah tab di Flutter gess
-            
-            // Kandungan Makronutrisi & Energi (Menggunakan float agar mendukung angka desimal)
-            $table->float('kalori')->default(0);  // Satuan: kcal
-            $table->float('protein')->default(0); // Satuan: gram
-            $table->float('lemak')->default(0);   // Satuan: gram
-            $table->float('karbo')->default(0);   // Satuan: gram
-            $table->float('gula')->default(0);    // Satuan: gram
-            
+
+            $table->string('nama');
+
+            $table->string('gambar')->nullable();
+
+            $table->string('takaran');
+
+            $table->enum('kategori', [
+                'minuman',
+                'snack'
+            ]);
+
+            $table->double('kalori')->default(0);
+            $table->double('protein')->default(0);
+            $table->double('lemak')->default(0);
+            $table->double('karbo')->default(0);
+
+            // baru
+            $table->string('alergi')->nullable();
+
+            $table->double('gula')->default(0);
+
             $table->timestamps();
+
         });
     }
 

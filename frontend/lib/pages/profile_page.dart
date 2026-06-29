@@ -68,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
           berat.text = user["berat_badan"]?.toString() ?? "";
           tinggi.text = user["tinggi_badan"]?.toString() ?? "";
           gulaDarah.text = user["gula_darah"]?.toString() ?? ""; 
-          alergi.text = user["alergi"] ?? ""; // Otomatis terisi dari Onboarding halaman_pilihan
+          alergi.text = user["alergi"] ?? ""; 
 
           if (berat.text.trim().isEmpty || tinggi.text.trim().isEmpty) {
             isEdit = true;
@@ -123,7 +123,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() => isLoading = true);
     try {
-      // 1. Update data profile utama
       final res = await http.post(
         Uri.parse("$baseUrl/api/profile/update/${widget.id}"),
         headers: {"Content-Type": "application/json"},
@@ -139,11 +138,10 @@ class _ProfilePageState extends State<ProfilePage> {
       final data = jsonDecode(res.body);
 
       if (data["success"] == true) {
-        // 2. PERBAIKAN: Otomatis kirim data gula darah ke riwayat ChartPage agar chart ter-update otomatis
         try {
           final tanggalHariIni = DateTime.now().toIso8601String().split("T")[0];
           await http.post(
-            Uri.parse("$baseUrl/api/gula-darah"), // Endpoint simpan data gula darah chart
+            Uri.parse("$baseUrl/api/gula-darah"), 
             headers: {
               "Content-Type": "application/json; charset=UTF-8",
               "Accept": "application/json",
@@ -151,7 +149,7 @@ class _ProfilePageState extends State<ProfilePage> {
             body: jsonEncode({
               "id_user": widget.id,
               "tanggal": tanggalHariIni,
-              "waktu": "Pagi", // Atur default waktu pemeriksaan awal
+              "waktu": "Pagi", 
               "nilai_gula": int.tryParse(gulaDarah.text.trim()) ?? 0,
             }),
           );

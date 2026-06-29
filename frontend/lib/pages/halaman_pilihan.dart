@@ -31,15 +31,15 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
     {"name": "Jus Alami", "icon": Icons.local_drink, "terpilih": false},
   ];
 
+  // PERBAIKAN: Menggunakan nama kategori Alergi Universal demi keamanan pengguna
   final List<Map<String, dynamic>> daftarAlergiMakanan = [
-    {"name": "Seafood / Udang", "icon": Icons.waves, "terpilih": false},
-    {"name": "Kacang Tanah", "icon": Icons.gavel, "terpilih": false},
+    {"name": "Seafood", "icon": Icons.waves, "terpilih": false},
+    {"name": "Kacang", "icon": Icons.gavel, "terpilih": false},
     {"name": "Gandum / Gluten", "icon": Icons.bakery_dining, "terpilih": false},
     {"name": "Telur", "icon": Icons.egg, "terpilih": false},
     {"name": "Tidak Ada Alergi", "icon": Icons.check_circle, "terpilih": false},
   ];
 
-  // Perbaikan: Menerima alergi sebagai String untuk mempermudah penyimpanan di DB teks
   Future<void> kirimPreferensiKeServer(
       List<String> suka, String alergi) async {
     try {
@@ -57,7 +57,7 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
             body: jsonEncode({
               "user_id": widget.dataUser["id"],
               "suka": suka, 
-              "alergi": alergi, // Dikirim sebagai String teks biasa
+              "alergi": alergi, 
             }),
           )
           .timeout(const Duration(seconds: 10));
@@ -90,7 +90,6 @@ class _HalamanPilihanState extends State<HalamanPilihan> {
         .map((item) => item["name"] as String)
         .toList();
 
-    // Perbaikan: Ubah Array Alergi menjadi String terpisah koma sebelum dikirim ke server
     String stringAlergi = pilihanAlergi.contains("Tidak Ada Alergi") || pilihanAlergi.isEmpty
         ? ""
         : pilihanAlergi.join(", ");

@@ -12,7 +12,6 @@ class ProfileController extends Controller
 {
     /**
      * LOAD PROFILE
-     * Fungsi ini otomatis membaca data yang diisi dari Onboarding
      */
     public function loadProfile(int $id)
     {
@@ -21,7 +20,6 @@ class ProfileController extends Controller
             ->where('users.id', $id)
             ->select(
                 'users.*',
-                'user_preferences.alergi_makanan',
                 'user_preferences.makanan_suka'
             )
             ->first();
@@ -31,21 +29,6 @@ class ProfileController extends Controller
                 'success' => false,
                 'message' => 'User tidak ditemukan'
             ], 404);
-        }
-
-        // --- VALIDASI & DECODE ALERGI DARI ONBOARDING ---
-        $alergiRaw = $user->alergi_makanan;
-        $alergiTampil = "";
-
-        if (!empty($alergiRaw)) {
-            // Jika data dari onboarding tersimpan dalam format JSON string (misal: ["telur", "udang"])
-            if (str_starts_with($alergiRaw, '[') && str_ends_with($alergiRaw, ']')) {
-                $alergiArray = json_decode($alergiRaw, true) ?? [];
-                $alergiTampil = implode(", ", $alergiArray);
-            } else {
-                // Jika dari onboarding tersimpan sebagai string biasa/mentah (Blok teks atau dipisah koma)
-                $alergiTampil = $alergiRaw;
-            }
         }
 
         $makanan = json_decode($user->makanan_suka ?? '[]', true) ?? [];
@@ -66,7 +49,9 @@ class ProfileController extends Controller
                 'berat_badan' => $user->berat_badan,
                 'gula_darah' => $user->gula_darah,
 
-                'alergi' => $alergiTampil, // Menampilkan data alergi onboarding secara otomatis
+                // Ambil alergi langsung dari tabel users
+                'alergi' => $user->alergi,
+
                 'makanan_suka' => $makanan,
 
                 'is_profile_completed' => $user->is_profile_completed,
@@ -76,7 +61,6 @@ class ProfileController extends Controller
 
     /**
      * UPDATE PROFILE
-     * Digunakan untuk update data dari halaman Profile maupun Onboarding
      */
     public function updateProfile(Request $request, int $id)
     {
@@ -98,10 +82,12 @@ class ProfileController extends Controller
         DB::beginTransaction();
 
         try {
+
             $updateUser = [
                 'name' => $request->nama,
                 'tinggi_badan' => $request->tinggi_badan,
                 'berat_badan' => $request->berat_badan,
+                'alergi' => $request->alergi,
                 'updated_at' => now(),
             ];
 
@@ -117,24 +103,18 @@ class ProfileController extends Controller
                 ->where('id', $id)
                 ->update($updateUser);
 
-            /*
-            |--------------------------------------------------------------------------
-            | SIMPAN RIWAYAT GULA DARAH 
-            |--------------------------------------------------------------------------
-            | Jika user menginput/mengubah gula darah (di onboarding / profil), 
-            | data otomatis masuk ke tabel riwayat agar grafik langsung terupdate.
-            */
+            // Simpan riwayat gula darah
             if ($request->filled('gula_darah')) {
+
                 $last = DB::table('gula_darah')
                     ->where('id_user', $id)
                     ->latest('id')
                     ->first();
 
-                // Cek jika data riwayat terakhir kosong atau nilainya berbeda
                 if (!$last || $last->nilai_gula != $request->gula_darah) {
+
                     $jam = now()->format('H:i');
 
-                    // Menentukan slot waktu dinamis berdasarkan jam saat ini
                     if ($jam < '11:00') {
                         $waktu = 'Pagi';
                     } elseif ($jam < '17:00') {
@@ -154,34 +134,12 @@ class ProfileController extends Controller
                 }
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | UPDATE ALERGI MAKANAN
-            |--------------------------------------------------------------------------
-            */
-            $alergiString = $request->alergi ?? "";
-            $alergiArray = [];
-
-            if (!empty($alergiString)) {
-                // Mengubah string pisahan koma (misal: "telur, kacang") menjadi array terpisah
-                $alergiArray = array_map('trim', explode(",", $alergiString));
-            }
-
-            DB::table('user_preferences')->updateOrInsert(
-                ['user_id' => $id],
-                [
-                    'alergi_makanan' => json_encode($alergiArray),
-                    'updated_at' => now(),
-                    'created_at' => now()
-                ]
-            );
-
             DB::commit();
 
-            // Kembalikan profil terbaru setelah berhasil disimpan
             return $this->loadProfile($id);
 
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             return response()->json([

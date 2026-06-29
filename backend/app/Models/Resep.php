@@ -10,8 +10,15 @@ class Resep extends Model
 
     protected $fillable = [
         'nama',
+        'kategori',
         'gambar',
         'komposisi',
         'cara',
+        'gula',
+        'kalori',
+        'protein',
+        'lemak',
+        'karbo',
+        'alergi',
     ];
 }

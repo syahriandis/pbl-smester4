@@ -11,15 +11,36 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Cek dulu apakah tabel sudah ada di database agar tidak error
         if (!Schema::hasTable('reseps')) {
+
             Schema::create('reseps', function (Blueprint $table) {
-                $table->id(); // Ini otomatis Integer PRIMARY KEY AUTO_INCREMENT gess
-                $table->string('nama'); // Menyimpan nama masakan resep
-                $table->string('gambar'); // Menyimpan path/url gambar masakan
-                $table->text('komposisi'); // Detail takaran bahan masakan
-                $table->text('cara'); // Langkah-langkah cara memasak
-                $table->timestamps(); // Otomatis membuat kolom created_at dan updated_at
+
+                $table->id();
+
+                $table->string('nama');
+
+                $table->enum('kategori', [
+                    'sarapan',
+                    'siang',
+                    'malam'
+                ])->default('sarapan');
+
+                $table->string('gambar');
+
+                $table->text('komposisi');
+
+                $table->text('cara');
+
+                // Sesuai urutan yang kamu mau
+                $table->double('gula')->default(0);
+                $table->double('kalori')->default(0);
+                $table->double('protein')->default(0);
+                $table->double('lemak')->default(0);
+                $table->double('karbo')->default(0);
+
+                $table->string('alergi')->nullable();
+
+                $table->timestamps();
             });
         }
     }

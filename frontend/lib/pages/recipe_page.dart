@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // ✔ Cukup pakai ini gess, ga perlu dart:io atau show-showan
+import 'package:flutter/foundation.dart'; 
 import '../color.dart';
 
 class RecipePage extends StatefulWidget {
@@ -22,7 +22,6 @@ class _RecipePageState extends State<RecipePage> {
   List<dynamic> resep = [];
   bool isLoading = true;
 
-  // ✔ URL Otomatis: persis seperti logika halaman loginmu gess!
   final String baseUrl = kIsWeb ? "http://localhost:8000" : "http://10.0.2.2:8000";
 
   @override
@@ -33,7 +32,6 @@ class _RecipePageState extends State<RecipePage> {
 
   Future<void> fetchResep() async {
     try {
-      // Tinggal gabungkan baseUrl dengan endpoint resep kamu gess
       final response = await http.get(Uri.parse("$baseUrl/api/resep"));
 
       if (response.statusCode == 200) {
@@ -86,19 +84,16 @@ class _RecipePageState extends State<RecipePage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(15),
-                    child: Image.asset(
-                      item["gambar"] ?? "",
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) {
-                        return Container(
-                          height: 150,
-                          color: Colors.grey[100],
-                          child:  Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey[400]),
-                        );
-                      },
-                    ),
+                    // PERBAIKAN: Menggunakan Image.network karena gambar bertipe URL dari DB
+                    child: item["gambar"] != null && item["gambar"] != ""
+                        ? Image.network(
+                            item["gambar"],
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                          )
+                        : _buildPlaceholderImage(),
                   ),
                   const SizedBox(height: 20),
                   _buildDetailSection(Icons.gavel_rounded, Colors.orange, "Takaran Bahan", item["komposisi"] ?? "-"),
@@ -128,6 +123,14 @@ class _RecipePageState extends State<RecipePage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPlaceholderImage() {
+    return Container(
+      height: 150,
+      color: Colors.grey[100],
+      child: Icon(Icons.restaurant_menu_rounded, size: 40, color: Colors.grey[400]),
     );
   }
 
@@ -171,16 +174,14 @@ class _RecipePageState extends State<RecipePage> {
               width: double.infinity,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-                child: Image.asset(
-                  item["gambar"] ?? "",
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return Container(
-                      color: Colors.grey[100],
-                      child: Icon(Icons.restaurant_rounded, size: 36, color: Colors.grey[400]),
-                    );
-                  },
-                ),
+                // PERBAIKAN: Menggunakan Image.network untuk gambar card katalog resep
+                child: item["gambar"] != null && item["gambar"] != ""
+                    ? Image.network(
+                        item["gambar"],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildCardPlaceholder(),
+                      )
+                    : _buildCardPlaceholder(),
               ),
             ),
           ),
@@ -214,7 +215,7 @@ class _RecipePageState extends State<RecipePage> {
                   padding: EdgeInsets.zero,
                 ),
                 onPressed: () => showDetail(context, item),
-                child:  Text(
+                child: Text(
                   "Detail",
                   style: TextStyle(fontSize: 11, color: Colors.grey[700], fontWeight: FontWeight.w600),
                 ),
@@ -223,6 +224,13 @@ class _RecipePageState extends State<RecipePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCardPlaceholder() {
+    return Container(
+      color: Colors.grey[100],
+      child: Icon(Icons.restaurant_rounded, size: 36, color: Colors.grey[400]),
     );
   }
 
@@ -255,7 +263,8 @@ class _RecipePageState extends State<RecipePage> {
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppColor.primary.withAlpha(30),
+                            // PERBAIKAN: Menggunakan .withValues untuk warning-free rendering
+                            backgroundColor: AppColor.primary.withValues(alpha: 0.12),
                             child: Icon(Icons.menu_book_rounded, color: AppColor.primary),
                           ),
                           const SizedBox(width: 14),

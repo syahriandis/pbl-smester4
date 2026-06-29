@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PreferenceController;
 use App\Http\Controllers\Api\FoodController;
 use App\Http\Controllers\Api\GulaDarahController;
 use App\Http\Controllers\Api\ResepController;
+use App\Http\Controllers\Api\RekomendasiController;
 
 // 1. OTENTIKASI (AUTH)
 Route::post('/register', [AuthController::class, 'register']);
@@ -31,3 +32,7 @@ Route::delete('/gula-darah/{id}', [GulaDarahController::class, 'destroy']);
 
 // 6. KATALOG RESEP DIABETES
 Route::get('/resep', [ResepController::class, 'index']);
+
+// Endpoint untuk mengambil rekomendasi berdasarkan ID User
+Route::get('/menu-rekomendasi/{id_user}', [RekomendasiController::class, 'getRekomendasi']);
+
